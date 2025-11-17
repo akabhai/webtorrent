@@ -19,7 +19,6 @@
                 <li><strong>Purely P2P:</strong> Files are transferred directly from your browser to the recipient's browser.</li>
                 <li><strong>No Server Storage:</strong> Your files are NEVER uploaded to a central server.</li>
                 <li><strong>Temporary Seeding:</strong> Files are only available as long as you keep this page open. Closing the tab stops the transfer.</li>
-                <li><strong>Privacy:</strong> Your IP address may be visible to other peers, as is standard with torrent technology.</li>
             </ul>
         </div>
 
@@ -39,6 +38,10 @@
             <section class="box" id="downloading-section">
                 <h2>2. Receive a File (Download or Stream)</h2>
                 <p>Paste a magnet link below to begin.</p>
+                <!-- ADDED: Note about streaming compatibility -->
+                <p class="streaming-note">
+                    <strong>Note:</strong> Streaming works best with web-compatible formats like <code>.mp4</code>, <code>.webm</code>, and <code>.mp3</code>.
+                </p>
                 <div class="magnet-input-wrapper">
                     <input type="text" id="magnet-input" placeholder="Paste magnet link here...">
                     <button id="download-btn" class="button">Get Files</button>
@@ -54,10 +57,7 @@
         </footer>
     </div>
 
-    <!-- WebTorrent CDN -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
-    
-    <!-- Our Application Script -->
     <script src="script.js"></script>
 </body>
 </html>
