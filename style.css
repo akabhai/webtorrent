@@ -3,6 +3,7 @@
     --primary-color: #007bff;
     --secondary-color: #6c757d;
     --success-color: #28a745;
+    --info-color: #17a2b8;
     --danger-color: #dc3545;
     --light-color: #f8f9fa;
     --dark-color: #343a40;
@@ -158,27 +159,6 @@ main {
     position: relative;
 }
 
-.torrent-card .magnet-link::after {
-    content: 'Click to copy';
-    position: absolute;
-    top: -25px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: #fff;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 0.75rem;
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
-    white-space: nowrap;
-}
-
-.torrent-card .magnet-link:hover::after {
-    opacity: 1;
-}
-
 /* Progress Bar */
 .progress-bar-container {
     width: 100%;
@@ -209,20 +189,55 @@ main {
     margin-top: 10px;
 }
 
-.download-link-container a {
-    display: inline-block;
-    margin-top: 10px;
-    padding: 8px 12px;
-    background-color: var(--success-color);
-    color: white;
-    border-radius: 5px;
-    text-decoration: none;
-    transition: background-color 0.2s;
+/* NEW: Action Buttons and Media Player */
+.actions-container {
+    margin-top: 15px;
+    border-top: 1px solid #ddd;
+    padding-top: 15px;
 }
 
-.download-link-container a:hover {
-    background-color: #218838;
+.file-actions {
+    margin-bottom: 10px;
 }
+
+.file-actions p {
+    font-weight: bold;
+    margin: 0 0 5px 0;
+    font-size: 0.9em;
+    word-break: break-all;
+}
+
+.action-button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-right: 8px;
+    transition: opacity 0.2s;
+}
+.action-button:hover {
+    opacity: 0.85;
+}
+
+.action-button.download {
+    background-color: var(--success-color);
+}
+
+.action-button.stream {
+    background-color: var(--info-color);
+}
+
+.torrent-card video,
+.torrent-card audio {
+    width: 100%;
+    margin-top: 10px;
+    border-radius: 5px;
+    background: #000;
+}
+
 
 footer {
     margin-top: 2rem;
