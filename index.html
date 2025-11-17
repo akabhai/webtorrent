@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P File Sharing (WebTorrent)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>P2P File Sharing with WebTorrent</h1>
+            <p>Share files directly between browsers, no server involved.</p>
+        </header>
+
+        <div class="security-notice">
+            <h3><img src="https://icongr.am/feather/shield.svg?size=20&color=d9534f" alt="Security Icon"> Important Notices</h3>
+            <ul>
+                <li><strong>Purely P2P:</strong> Files are transferred directly from your browser to the recipient's browser.</li>
+                <li><strong>No Server Storage:</strong> Your files are NEVER uploaded to a central server.</li>
+                <li><strong>Temporary Seeding:</strong> Files are only available as long as you keep this page open. Closing the tab stops the transfer.</li>
+                <li><strong>Privacy:</strong> Your IP address may be visible to other peers in the swarm, as with any torrent client.</li>
+            </ul>
+        </div>
+
+        <main>
+            <section class="box" id="seeding-section">
+                <h2>1. Share a File (Seed)</h2>
+                <p>Select a file to begin seeding. A magnet link will be generated for you to share.</p>
+                <div class="file-input-wrapper">
+                    <input type="file" id="file-input" multiple>
+                    <label for="file-input" class="button">Choose Files</label>
+                </div>
+                <div id="seeding-list" class="torrent-list">
+                    <!-- Seeding torrents will be dynamically added here -->
+                </div>
+            </section>
+
+            <section class="box" id="downloading-section">
+                <h2>2. Download a File (Leech)</h2>
+                <p>Paste a magnet link below to start downloading.</p>
+                <div class="magnet-input-wrapper">
+                    <input type="text" id="magnet-input" placeholder="Paste magnet link here...">
+                    <button id="download-btn" class="button">Download</button>
+                </div>
+                <div id="download-list" class="torrent-list">
+                    <!-- Downloading torrents will be dynamically added here -->
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>Powered by <a href="https://webtorrent.io/" target="_blank" rel="noopener noreferrer">WebTorrent</a>. Runs entirely in your browser.</p>
+        </footer>
+    </div>
+
+    <!-- WebTorrent CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+    
+    <!-- Our Application Script -->
+    <script src="script.js"></script>
+</body>
+</html>
