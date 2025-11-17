@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
         client = new WebTorrent();
     } catch (err) {
         console.error('Failed to initialize WebTorrent client:', err);
-        alert(`Error initializing WebTorrent: ${err.message}. This might be caused by a browser extension blocking WebRTC.`);
+        alert(`Error initializing WebTorrent: ${err.message}. This might be caused by a browser extension blocking WebRTC or running from an insecure context (file://).`);
         return;
     }
 
@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const files = fileInput.files;
         if (files.length === 0) return;
         
+        console.log('Seeding files:', files);
         client.seed(files, (torrent) => {
             console.log('Client is seeding:', torrent.magnetURI);
             displayTorrent(torrent, 'seeding');
@@ -46,7 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Please paste a magnet link.');
             return;
         }
-
+        
+        console.log('Adding torrent:', magnetURI);
         client.add(magnetURI, (torrent) => {
             console.log('Client is downloading:', torrent.infoHash);
             displayTorrent(torrent, 'downloading');
@@ -97,65 +99,68 @@ document.addEventListener('DOMContentLoaded', () => {
             updateTorrentUI(torrent, card);
         }, 1000);
 
-        torrent.on('done', () => {
-            console.log('Torrent download finished');
-            updateTorrentUI(torrent, card);
-            clearInterval(interval);
-            
-            const actionsContainer = card.querySelector('.actions-container');
-            
-            // For each file in the torrent, create download/stream buttons
-            torrent.files.forEach(file => {
-                const fileActions = document.createElement('div');
-                fileActions.className = 'file-actions';
-
-                const fileNameEl = document.createElement('p');
-                fileNameEl.textContent = file.name;
-                fileActions.appendChild(fileNameEl);
+        // --- THE FIX IS HERE ---
+        // Only add download/stream buttons for DOWNLOADERS.
+        if (type === 'downloading') {
+            torrent.on('done', () => {
+                console.log('Torrent download finished');
+                updateTorrentUI(torrent, card); // Final UI update
+                clearInterval(interval);
                 
-                // Create Download Link
-                file.getBlobURL((err, url) => {
-                    if (err) {
-                        console.error('Error getting blob URL:', err);
-                        return;
-                    }
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = file.name;
-                    a.textContent = 'Download';
-                    a.className = 'action-button download';
-                    fileActions.appendChild(a);
-                });
+                const actionsContainer = card.querySelector('.actions-container');
+                
+                // For each file in the torrent, create action buttons
+                torrent.files.forEach(file => {
+                    const fileActions = document.createElement('div');
+                    fileActions.className = 'file-actions';
 
-                // Create Stream Button if file is streamable
-                if (isStreamable(file)) {
-                    const streamBtn = document.createElement('button');
-                    streamBtn.textContent = 'Stream';
-                    streamBtn.className = 'action-button stream';
-                    streamBtn.onclick = () => {
-                        // Remove any existing player
-                        const existingPlayer = card.querySelector('video, audio');
-                        if (existingPlayer) {
-                            existingPlayer.remove();
+                    const fileNameEl = document.createElement('p');
+                    fileNameEl.textContent = file.name;
+                    fileActions.appendChild(fileNameEl);
+                    
+                    // Create Download Link
+                    file.getBlobURL((err, url) => {
+                        if (err) {
+                            console.error('Error getting blob URL:', err);
+                            return;
                         }
-                        
-                        // Create and append the new player
-                        const mediaElement = isStreamable(file) === 'video' 
-                            ? document.createElement('video') 
-                            : document.createElement('audio');
-                        mediaElement.controls = true;
-                        mediaElement.autoplay = true; // Start playing immediately
-                        card.appendChild(mediaElement);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = file.name;
+                        a.textContent = 'Download';
+                        a.className = 'action-button download';
+                        fileActions.appendChild(a);
+                    });
 
-                        // WebTorrent's magic streaming function
-                        file.appendTo(mediaElement);
-                    };
-                    fileActions.appendChild(streamBtn);
-                }
+                    // Create Stream Button if file is streamable
+                    if (isStreamable(file)) {
+                        const streamBtn = document.createElement('button');
+                        streamBtn.textContent = 'Stream';
+                        streamBtn.className = 'action-button stream';
+                        streamBtn.onclick = () => {
+                            const existingPlayer = card.querySelector('video, audio');
+                            if (existingPlayer) existingPlayer.remove();
+                            
+                            const mediaType = isStreamable(file); // 'video' or 'audio'
+                            const mediaElement = document.createElement(mediaType);
+                            mediaElement.controls = true;
+                            mediaElement.autoplay = true;
+                            card.appendChild(mediaElement);
+                            file.appendTo(mediaElement);
+                        };
+                        fileActions.appendChild(streamBtn);
+                    }
 
-                actionsContainer.appendChild(fileActions);
+                    actionsContainer.appendChild(fileActions);
+                });
             });
-        });
+        } else {
+            // For SEEDERS, we just need to know when the torrent is ready to be used.
+            torrent.on('ready', () => {
+                console.log('Seeding torrent is ready:', torrent.infoHash);
+                updateTorrentUI(torrent, card); // Initial UI update for seeder
+            });
+        }
 
         torrent.on('error', (err) => {
             console.error(`Torrent error: ${err.message}`);
@@ -172,17 +177,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTorrentUI(torrent, card) {
         const progress = (torrent.progress * 100).toFixed(1);
         const progressBar = card.querySelector('.progress-bar');
-        const peers = card.querySelector('.peers');
-        const downloadSpeed = card.querySelector('.download-speed');
-        const uploadSpeed = card.querySelector('.upload-speed');
-        const eta = card.querySelector('.eta');
-
         progressBar.style.width = `${progress}%`;
         progressBar.textContent = `${progress}%`;
-        peers.textContent = torrent.numPeers;
-        downloadSpeed.textContent = `${prettyBytes(torrent.downloadSpeed)}/s`;
-        uploadSpeed.textContent = `${prettyBytes(torrent.uploadSpeed)}/s`;
 
+        // When seeding, progress is always 100%. Let's reflect that.
+        if (torrent.progress === 1) {
+            progressBar.textContent = 'Seeding';
+            progressBar.style.backgroundColor = '#007bff'; // Change color to indicate seeding
+        }
+
+        card.querySelector('.peers').textContent = torrent.numPeers;
+        card.querySelector('.download-speed').textContent = `${prettyBytes(torrent.downloadSpeed)}/s`;
+        card.querySelector('.upload-speed').textContent = `${prettyBytes(torrent.uploadSpeed)}/s`;
+        
+        const eta = card.querySelector('.eta');
         const timeRemaining = torrent.timeRemaining;
         if (timeRemaining === Infinity || !timeRemaining) {
             eta.textContent = '∞';
@@ -191,24 +199,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // --- UTILITY FUNCTIONS ---
-
-    /**
-     * Checks if a file is a streamable video or audio type based on its name.
-     * @param {object} file - The file object from WebTorrent.
-     * @returns {string|false} 'video', 'audio', or false.
-     */
     function isStreamable(file) {
         const videoExtensions = ['.mp4', '.mkv', '.webm', '.mov'];
         const audioExtensions = ['.mp3', '.wav', '.ogg', '.aac', '.flac'];
         const fileName = file.name.toLowerCase();
 
-        if (videoExtensions.some(ext => fileName.endsWith(ext))) {
-            return 'video';
-        }
-        if (audioExtensions.some(ext => fileName.endsWith(ext))) {
-            return 'audio';
-        }
+        if (videoExtensions.some(ext => fileName.endsWith(ext))) return 'video';
+        if (audioExtensions.some(ext => fileName.endsWith(ext))) return 'audio';
         return false;
     }
 
