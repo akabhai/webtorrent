@@ -147,4 +147,87 @@ document.addEventListener('DOMContentLoaded', () => {
                         mediaElement.autoplay = true; // Start playing immediately
                         card.appendChild(mediaElement);
 
-                        // WebTorrent
+                        // WebTorrent's magic streaming function
+                        file.appendTo(mediaElement);
+                    };
+                    fileActions.appendChild(streamBtn);
+                }
+
+                actionsContainer.appendChild(fileActions);
+            });
+        });
+
+        torrent.on('error', (err) => {
+            console.error(`Torrent error: ${err.message}`);
+            card.innerHTML += `<div style="color: red;">Error: ${err.message}</div>`;
+            clearInterval(interval);
+        });
+    }
+
+    /**
+     * Updates the UI for a specific torrent card.
+     * @param {object} torrent - The WebTorrent torrent object.
+     * @param {HTMLElement} card - The DOM element for the torrent card.
+     */
+    function updateTorrentUI(torrent, card) {
+        const progress = (torrent.progress * 100).toFixed(1);
+        const progressBar = card.querySelector('.progress-bar');
+        const peers = card.querySelector('.peers');
+        const downloadSpeed = card.querySelector('.download-speed');
+        const uploadSpeed = card.querySelector('.upload-speed');
+        const eta = card.querySelector('.eta');
+
+        progressBar.style.width = `${progress}%`;
+        progressBar.textContent = `${progress}%`;
+        peers.textContent = torrent.numPeers;
+        downloadSpeed.textContent = `${prettyBytes(torrent.downloadSpeed)}/s`;
+        uploadSpeed.textContent = `${prettyBytes(torrent.uploadSpeed)}/s`;
+
+        const timeRemaining = torrent.timeRemaining;
+        if (timeRemaining === Infinity || !timeRemaining) {
+            eta.textContent = '∞';
+        } else {
+            eta.textContent = formatTime(timeRemaining);
+        }
+    }
+    
+    // --- UTILITY FUNCTIONS ---
+
+    /**
+     * Checks if a file is a streamable video or audio type based on its name.
+     * @param {object} file - The file object from WebTorrent.
+     * @returns {string|false} 'video', 'audio', or false.
+     */
+    function isStreamable(file) {
+        const videoExtensions = ['.mp4', '.mkv', '.webm', '.mov'];
+        const audioExtensions = ['.mp3', '.wav', '.ogg', '.aac', '.flac'];
+        const fileName = file.name.toLowerCase();
+
+        if (videoExtensions.some(ext => fileName.endsWith(ext))) {
+            return 'video';
+        }
+        if (audioExtensions.some(ext => fileName.endsWith(ext))) {
+            return 'audio';
+        }
+        return false;
+    }
+
+    function prettyBytes(num) {
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        if (Math.abs(num) < 1) return num + ' B';
+        const exponent = Math.min(Math.floor(Math.log10(num) / 3), units.length - 1);
+        const numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3));
+        const unit = units[exponent];
+        return `${numStr} ${unit}`;
+    }
+
+    function formatTime(ms) {
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        if (hours > 0) return `${hours}h ${minutes % 60}m`;
+        if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+        if (seconds > 0) return `${seconds}s`;
+        return '0s';
+    }
+});
