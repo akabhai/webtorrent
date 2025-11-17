@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P File Sharing (WebTorrent)</title>
+    <title>P2P File Sharing & Streaming (WebTorrent)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>P2P File Sharing with WebTorrent</h1>
-            <p>Share files directly between browsers, no server involved.</p>
+            <h1>P2P File Sharing & Streaming</h1>
+            <p>Share files directly between browsers. Stream video and audio instantly.</p>
         </header>
 
         <div class="security-notice">
@@ -19,7 +19,7 @@
                 <li><strong>Purely P2P:</strong> Files are transferred directly from your browser to the recipient's browser.</li>
                 <li><strong>No Server Storage:</strong> Your files are NEVER uploaded to a central server.</li>
                 <li><strong>Temporary Seeding:</strong> Files are only available as long as you keep this page open. Closing the tab stops the transfer.</li>
-                <li><strong>Privacy:</strong> Your IP address may be visible to other peers in the swarm, as with any torrent client.</li>
+                <li><strong>Privacy:</strong> Your IP address may be visible to other peers, as is standard with torrent technology.</li>
             </ul>
         </div>
 
@@ -37,11 +37,11 @@
             </section>
 
             <section class="box" id="downloading-section">
-                <h2>2. Download a File (Leech)</h2>
-                <p>Paste a magnet link below to start downloading.</p>
+                <h2>2. Receive a File (Download or Stream)</h2>
+                <p>Paste a magnet link below to begin.</p>
                 <div class="magnet-input-wrapper">
                     <input type="text" id="magnet-input" placeholder="Paste magnet link here...">
-                    <button id="download-btn" class="button">Download</button>
+                    <button id="download-btn" class="button">Get Files</button>
                 </div>
                 <div id="download-list" class="torrent-list">
                     <!-- Downloading torrents will be dynamically added here -->
