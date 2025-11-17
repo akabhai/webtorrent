@@ -5,7 +5,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const client = new WebTorrent();
+    let client;
+    try {
+        client = new WebTorrent();
+        console.log('WebTorrent client initialized successfully.');
+    } catch (err) {
+        console.error('Failed to initialize WebTorrent client:', err);
+        alert(`Error initializing WebTorrent: ${err.message}. This might be caused by a browser extension blocking WebRTC.`);
+        return;
+    }
+
+    // Client-wide error handling
+    client.on('error', (err) => {
+        console.error('WebTorrent client error:', err);
+        // Attempt to give a more helpful message for common errors
+        const message = err.message || 'An unknown error occurred.';
+        if (message.includes('WebRTC')) {
+            alert(`A WebRTC error occurred: ${message}. Please check if a browser extension (like an ad-blocker) is blocking P2P connections and try again.`);
+        } else {
+            alert(`An unexpected error occurred in the WebTorrent client: ${message}`);
+        }
+    });
+
     const fileInput = document.getElementById('file-input');
     const magnetInput = document.getElementById('magnet-input');
     const downloadBtn = document.getElementById('download-btn');
@@ -60,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'torrent-card';
         card.id = `torrent-${torrent.infoHash}`;
 
-        // Get the main file name (or torrent name if multiple files)
         const fileName = torrent.files.length > 1 ? torrent.name : torrent.files[0].name;
 
         card.innerHTML = `
@@ -80,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         list.appendChild(card);
         
-        // Add click-to-copy functionality for magnet link
         const magnetLinkEl = card.querySelector('.magnet-link');
         if (magnetLinkEl) {
             magnetLinkEl.addEventListener('click', () => {
@@ -93,19 +112,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // --- TORRENT EVENT LISTENERS AND UI UPDATES ---
-        
-        // Update UI periodically
         const interval = setInterval(() => {
             updateTorrentUI(torrent, card);
         }, 1000);
 
         torrent.on('done', () => {
             console.log('Torrent download finished');
-            updateTorrentUI(torrent, card); // Final update
+            updateTorrentUI(torrent, card);
             clearInterval(interval);
             
-            // Generate download links for each file
             const downloadLinkContainer = card.querySelector('.download-link-container');
             torrent.files.forEach(file => {
                 file.getBlobURL((err, url) => {
@@ -155,20 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
             eta.textContent = formatTime(timeRemaining);
         }
     }
-    
-    // Client-wide error handling
-    client.on('error', (err) => {
-        console.error('WebTorrent client error:', err);
-        alert(`An unexpected error occurred: ${err.message}`);
-    });
 
     // --- UTILITY FUNCTIONS ---
-
-    /**
-     * Converts bytes to a human-readable format (KB, MB, GB).
-     * @param {number} num - The number of bytes.
-     * @returns {string} The formatted string.
-     */
     function prettyBytes(num) {
         const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
         if (Math.abs(num) < 1) return num + ' B';
@@ -178,11 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${numStr} ${unit}`;
     }
 
-    /**
-     * Formats milliseconds into a human-readable time string (e.g., "1m 30s").
-     * @param {number} ms - Milliseconds.
-     * @returns {string} The formatted time string.
-     */
     function formatTime(ms) {
         const seconds = Math.floor(ms / 1000);
         const minutes = Math.floor(seconds / 60);
