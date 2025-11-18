@@ -3,170 +3,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streaming File - P2P Sharer</title>
+    <title>Downloading File - P2P Sharer</title>
+    
+    <!-- CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
     <style>
-        /* CSS is identical to previous version. */
-        :root{--font-main:'Segoe UI',Roboto,'Helvetica Neue',sans-serif;--font-hacker:'Courier New',Courier,monospace}:root,:root.light-mode{--bg-color:#f0f2f5;--text-color:#333;--header-color:#4a4a4a;--card-bg:rgba(255,255,255,0.6);--card-border:rgba(255,255,255,0.8);--neon-border-color:#007bff;--accent-color:#007bff;--accent-hover:#0056b3;--success-color:#28a745;--danger-color:#dc3545}:root.dark-mode{--bg-color:#1a1a1a;--text-color:#e0e0e0;--header-color:#f5f5f5;--card-bg:rgba(10,10,10,0.5);--card-border:rgba(255,255,255,0.1);--neon-border-color:#00e5ff;--accent-color:#00e5ff;--accent-hover:#00b8d4;--success-color:#00e676;--danger-color:#ff5252}:root.hacker-mode{--bg-color:#000;--text-color:#0f0;--header-color:#0f0;--card-bg:rgba(0,20,0,0.6);--card-border:rgba(0,255,0,0.3);--neon-border-color:#0f0;--accent-color:#0f0;--accent-hover:#3f3;--success-color:#0f0;--danger-color:#f00}body{font-family:var(--font-main);background-color:var(--bg-color);color:var(--text-color);margin:0;padding:20px;transition:background-color .3s,color .3s;display:flex;align-items:center;justify-content:center;min-height:100vh}body.hacker-mode{font-family:var(--font-hacker)}#matrix-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;display:none}body.hacker-mode #matrix-canvas{display:block}.container{max-width:800px;width:100%}.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:15px;padding:25px;backdrop-filter:blur(10px);box-shadow:0 8px 32px 0 rgba(0,0,0,.1);text-align:center}.animated-header{font-size:2.5em;font-weight:700;color:var(--header-color);animation:color-cycle 10s infinite}@keyframes color-cycle{0%{color:var(--header-color)}50%{color:var(--accent-color)}100%{color:var(--header-color)}}#status-area h2{word-wrap:break-word}#stats{display:flex;justify-content:space-around;font-size:.9em;opacity:.8;margin-top:15px}#player-area{margin-top:20px}#player-area video,#player-area audio,#player-area img{max-width:100%;border-radius:10px;background-color:#000}#save-file-button{display:none;background-color:var(--success-color);color:#fff;border:none;padding:12px 25px;border-radius:5px;cursor:pointer;font-weight:700;font-size:1.1em;text-decoration:none;margin-top:20px}.loader-container{padding:40px 0}.loader{margin:0 auto;border:5px solid #f3f3f3;border-top:5px solid var(--accent-color);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        /* CSS is identical to the previous version. */
+        :root { --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif; --font-hacker: 'Courier New', Courier, monospace; }
+        :root, :root.light-mode { --bg-color: #f0f2f5; --text-color: #333; --header-color: #4a4a4a; --card-bg: rgba(255, 255, 255, 0.6); --card-border: rgba(255, 255, 255, 0.8); --neon-border-color: #007bff; --accent-color: #007bff; --accent-hover: #0056b3; --success-color: #28a745; --danger-color: #dc3545; }
+        :root.dark-mode { --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #f5f5f5; --card-bg: rgba(10, 10, 10, 0.5); --card-border: rgba(255, 255, 255, 0.1); --neon-border-color: #00e5ff; --accent-color: #00e5ff; --accent-hover: #00b8d4; --success-color: #00e676; --danger-color: #ff5252; }
+        :root.hacker-mode { --bg-color: #000; --text-color: #0f0; --header-color: #0f0; --card-bg: rgba(0, 20, 0, 0.6); --card-border: rgba(0, 255, 0, 0.3); --neon-border-color: #0f0; --accent-color: #0f0; --accent-hover: #3f3; --success-color: #0f0; --danger-color: #f00; }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; transition: background-color 0.3s, color 0.3s; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        body.hacker-mode { font-family: var(--font-hacker); }
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; display: none; }
+        body.hacker-mode #matrix-canvas { display: block; }
+        .container { max-width: 800px; width: 100%; }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 15px; padding: 25px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); text-align: center; }
+        .animated-header { font-size: 2.5em; font-weight: bold; color: var(--header-color); animation: color-cycle 10s infinite; }
+        @keyframes color-cycle { 0% { color: var(--header-color); } 50% { color: var(--accent-color); } 100% { color: var(--header-color); } }
+        #status-area h2 { word-wrap: break-word; }
+        .progress-bar { width: 100%; background-color: #ddd; border-radius: 5px; overflow: hidden; margin: 20px 0; }
+        .progress { width: 0%; height: 25px; background-color: var(--accent-color); text-align: center; line-height: 25px; color: white; font-weight: bold; transition: width 0.2s; }
+        #stats { display: flex; justify-content: space-around; font-size: 0.9em; opacity: 0.8; }
+        #player-area { margin-top: 20px; }
+        #player-area video, #player-area audio, #player-area img { max-width: 100%; border-radius: 10px; }
+        #save-file-button { display: none; background-color: var(--success-color); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1.1em; text-decoration: none; margin-top: 20px; }
+        .loader-container { padding: 40px 0; }
+        .loader { margin: 0 auto; border: 5px solid #f3f3f3; border-top: 5px solid var(--accent-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #choice-area { display: none; margin-top: 20px; }
+        .choice-button { background-color: var(--accent-color); color: white; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.2em; margin: 0 10px; transition: transform 0.2s, background-color 0.2s; }
+        .choice-button:hover { transform: translateY(-3px); background-color: var(--accent-hover); }
+        .choice-button i { margin-right: 10px; }
     </style>
 </head>
 <body>
+    <canvas id="matrix-canvas"></canvas>
     <div class="container">
         <div class="card">
-            <h1 class="animated-header">P2P Secure Stream</h1>
+            <h1 class="animated-header">P2P Secure Download</h1>
+            
             <div id="status-area">
                 <h2 id="filename"></h2>
                 <div id="info-message"></div>
-                <div class="loader-container" id="loader"><div class="loader"></div><p>Connecting to P2P Swarm...</p></div>
-                <div id="stats" style="display: none;">
+                <div class="loader-container" id="loader"><div class="loader"></div><p>P2P Swarm Connecting...</p></div>
+            </div>
+
+            <div id="choice-area">
+                <button id="stream-button" class="choice-button"><i class="fas fa-play"></i> Stream Now</button>
+                <button id="download-offline-button" class="choice-button"><i class="fas fa-cloud-download-alt"></i> Download for Offline</button>
+            </div>
+
+            <div id="download-progress" style="display: none;">
+                <div class="progress-bar"><div class="progress" id="progress">0%</div></div>
+                <div id="stats">
                     <span><i class="fas fa-arrow-down"></i> <span id="speed">0 MB/s</span></span>
                     <span><i class="fas fa-users"></i> <span id="peers">0 peers</span></span>
                 </div>
             </div>
+
             <div id="player-area"></div>
-            <a id="save-file-button" href="#" download><i class="fas fa-download"></i> Save Full File</a>
+            <a id="save-file-button" href="#" download><i class="fas fa-download"></i> Save Decrypted File</a>
         </div>
     </div>
 
-    <script id="decryption-worker" type="javascript/worker">self.importScripts("https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js");let e,t;self.onmessage=s=>{const{keyHex:r,ivHex:c,chunk:o}=s.data;try{r&&(e=CryptoJS.enc.Hex.parse(r)),c&&(t=CryptoJS.enc.Hex.parse(c));if(o){const r=CryptoJS.lib.WordArray.create(o),c=CryptoJS.AES.decrypt({ciphertext:r},e,{iv:t}),s=c.sigBytes,a=new Uint8Array(s);for(let e=0;e<s;e++)a[e]=c.words[e>>>2]>>>24-e%4*8&255;self.postMessage({decryptedChunk:a.buffer},[a.buffer])}}catch(e){self.postMessage({error:e.message})}};</script>
+    <!-- INLINE WEB WORKER FOR DECRYPTION (No changes needed here) -->
+    <script id="decryption-worker" type="javascript/worker">
+        self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
+        self.onmessage = function(e) {
+            const { encryptedBuffer, keyHex } = e.data;
+            try {
+                const key = CryptoJS.enc.Hex.parse(keyHex);
+                const iv = CryptoJS.lib.WordArray.create(encryptedBuffer.slice(0, 16));
+                const ciphertext = CryptoJS.lib.WordArray.create(encryptedBuffer.slice(16));
+                const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertext }, key, { iv: iv });
+                const l = decrypted.sigBytes;
+                const u8_array = new Uint8Array(l);
+                for (let i = 0; i < l; i++) {
+                    u8_array[i] = (decrypted.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+                }
+                if (u8_array.length === 0) { throw new Error("Decryption resulted in an empty file."); }
+                self.postMessage({ decryptedBuffer: u8_array.buffer }, [u8_array.buffer]);
+            } catch (error) { self.postMessage({ error: error.message }); }
+        };
+    </script>
+
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const dom = { filename: document.getElementById('filename'), infoMessage: document.getElementById('info-message'), loader: document.getElementById('loader'), stats: document.getElementById('stats'), speed: document.getElementById('speed'), peers: document.getElementById('peers'), playerArea: document.getElementById('player-area'), saveFileButton: document.getElementById('save-file-button') };
-        (function applyTheme(){if(localStorage.getItem('theme')==='dark')document.body.classList.add('dark-mode');if(localStorage.getItem('hackerMode')==='true')document.body.classList.add('hacker-mode');})();
+        const dom = {
+            filename: document.getElementById('filename'),
+            infoMessage: document.getElementById('info-message'),
+            loader: document.getElementById('loader'),
+            choiceArea: document.getElementById('choice-area'),
+            streamButton: document.getElementById('stream-button'),
+            downloadOfflineButton: document.getElementById('download-offline-button'),
+            downloadProgress: document.getElementById('download-progress'),
+            progressBar: document.getElementById('progress'),
+            speed: document.getElementById('speed'),
+            peers: document.getElementById('peers'),
+            playerArea: document.getElementById('player-area'),
+            saveFileButton: document.getElementById('save-file-button'),
+        };
+
+        (function applyTheme(){ if(localStorage.getItem('theme')==='dark')document.body.classList.add('dark-mode'); if(localStorage.getItem('hackerMode')==='true'){document.body.classList.add('hacker-mode');}})();
 
         const params = new URLSearchParams(window.location.search);
         const magnetURI = params.get('magnet');
         const keyHex = params.get('key');
         const originalFilename = params.get('filename') || 'downloaded-file';
+        let torrentInstance = null;
 
-        if (!magnetURI || !keyHex) return showError("Error: Missing magnet link or decryption key in URL.");
-        if (!window.MediaSource) return showError("Your browser does not support the MediaSource API, which is required for live streaming.");
+        if (!magnetURI || !keyHex) {
+            return showError("Error: Missing magnet link or decryption key in URL.");
+        }
 
-        dom.filename.textContent = escapeHTML(originalFilename);
+        dom.filename.textContent = `Preparing: ${escapeHTML(originalFilename)}`;
         const client = new WebTorrent();
 
         client.on('error', err => showError(err.message));
+
         client.add(magnetURI, torrent => {
+            torrentInstance = torrent;
             dom.loader.style.display = 'none';
-            dom.stats.style.display = 'flex';
-            const file = torrent.files[0];
+            dom.infoMessage.textContent = 'Connected to P2P network. Please choose an option.';
+            dom.filename.textContent = escapeHTML(originalFilename);
+            dom.choiceArea.style.display = 'block';
 
-            // Setup real-time stats
-            setInterval(() => {
-                dom.speed.textContent = `${formatBytes(client.downloadSpeed)}/s`;
-                dom.peers.textContent = `${torrent.numPeers} peers`;
-            }, 1000);
-
-            // Once done, create a blob for the save button
-            torrent.on('done', () => {
-                file.getBlob((err, blob) => {
-                    if (err) return; // Fail silently, streaming is the priority
-                    // We need to decrypt the whole thing again for saving.
-                    // This is a trade-off for live streaming.
-                    dom.saveFileButton.onclick = (e) => {
-                        e.preventDefault();
-                        alert("File decryption for saving is starting. This may take a moment and freeze the page. Click OK to continue.");
-                        decryptEntireBlob(blob, keyHex, originalFilename);
-                    };
-                    dom.saveFileButton.style.display = 'inline-block';
-                    dom.infoMessage.innerHTML += ' | <span style="color:var(--success-color)">Full file ready to save.</span>';
-                });
-            });
-            
-            startStreaming(file, keyHex);
+            dom.streamButton.addEventListener('click', () => startProcess('stream'));
+            dom.downloadOfflineButton.addEventListener('click', () => startProcess('download'));
         });
-
-        function startStreaming(file, keyHex) {
-            const mediaSource = new MediaSource();
-            const fileType = getFileType(originalFilename);
-            let player;
-
-            if (fileType === 'video') { player = document.createElement('video'); player.controls = true; }
-            else if (fileType === 'audio') { player = document.createElement('audio'); player.controls = true; }
-            else { return showError("This file type cannot be streamed. Please wait for the download to complete and use the 'Save File' button."); }
+        
+        function startProcess(mode) {
+            if (!torrentInstance) return showError("Torrent not ready.");
             
-            player.src = URL.createObjectURL(mediaSource);
-            dom.playerArea.appendChild(player);
-            dom.infoMessage.innerHTML = `<i class="fas fa-stream"></i> Buffering stream...`;
+            dom.choiceArea.style.display = 'none';
+            dom.downloadProgress.style.display = 'block';
+            dom.infoMessage.textContent = 'Downloading encrypted file from peers...';
 
-            mediaSource.addEventListener('sourceopen', () => {
-                try {
-                    const mime = fileType === 'video' ? 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"' : 'audio/mpeg';
-                    const sourceBuffer = mediaSource.addSourceBuffer(mime);
+            const file = torrentInstance.files[0];
+
+            torrentInstance.on('download', () => {
+                const progress = (torrentInstance.progress * 100).toFixed(1);
+                dom.progressBar.style.width = `${progress}%`;
+                dom.progressBar.textContent = `${progress}%`;
+                dom.speed.textContent = `${formatBytes(torrentInstance.downloadSpeed)}/s`;
+                dom.peers.textContent = `${torrentInstance.numPeers} peers`;
+            });
+
+            torrentInstance.on('done', () => {
+                dom.infoMessage.innerHTML = `<i class="fas-spinner fa-spin"></i> Download complete. Finalizing file...`;
+                dom.progressBar.style.width = '100%';
+                dom.progressBar.textContent = '100%';
+                
+                // --- THIS IS THE CRITICAL FIX ---
+                // Use file.getBuffer instead of file.arrayBuffer
+                file.getBuffer((err, encryptedBuffer) => {
+                    if (err) {
+                        return showError(`Failed to get file buffer: ${err.message}`);
+                    }
+
+                    dom.infoMessage.innerHTML = `<i class="fas fa-lock-open"></i> Decrypting in background...`;
                     
-                    const worker = new Worker(URL.createObjectURL(new Blob([document.getElementById('decryption-worker').textContent])));
-                    let ivExtracted = false;
-
-                    // Stream data from WebTorrent
-                    const stream = file.createReadStream();
-                    stream.on('data', chunk => {
-                        if (!ivExtracted) {
-                            // First 16 bytes are the IV
-                            const iv = chunk.slice(0, 16);
-                            const data = chunk.slice(16);
-                            worker.postMessage({ keyHex, ivHex: CryptoJS.lib.WordArray.create(iv).toString(CryptoJS.enc.Hex) });
-                            worker.postMessage({ chunk: data.buffer }, [data.buffer]);
-                            ivExtracted = true;
+                    const workerScript = document.getElementById('decryption-worker').textContent;
+                    const worker = new Worker(URL.createObjectURL(new Blob([workerScript])));
+                    
+                    worker.onmessage = (e) => {
+                        worker.terminate();
+                        if (e.data.error) return showError(`Decryption failed: ${e.data.error}`);
+                        
+                        const { decryptedBuffer } = e.data;
+                        dom.infoMessage.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success-color);"></i> Decryption Complete!`;
+                        dom.progressBar.style.backgroundColor = 'var(--success-color)';
+                        
+                        const blob = new Blob([decryptedBuffer]);
+                        
+                        if (mode === 'stream') {
+                            renderStream(blob, originalFilename);
                         } else {
-                            worker.postMessage({ chunk: chunk.buffer }, [chunk.buffer]);
-                        }
-                    });
-
-                    worker.onmessage = e => {
-                        if(e.data.error) return showError("Decryption worker error: " + e.data.error);
-                        const { decryptedChunk } = e.data;
-                        if (sourceBuffer.updating) {
-                           // Queue it up if the buffer is busy
-                           sourceBuffer.addEventListener('updateend', () => sourceBuffer.appendBuffer(decryptedChunk), { once: true });
-                        } else {
-                           sourceBuffer.appendBuffer(decryptedChunk);
+                            prepareForSave(blob, originalFilename);
                         }
                     };
+
+                    worker.onerror = (err) => { worker.terminate(); showError("A critical error occurred in the decryption worker."); };
                     
-                    stream.on('end', () => {
-                        setTimeout(() => { 
-                            if (!mediaSource.ended && mediaSource.readyState === 'open') mediaSource.endOfStream();
-                        }, 2000);
-                    });
-
-                    player.play().then(() => {
-                         dom.infoMessage.innerHTML = `<i class="fas fa-play-circle" style="color:var(--success-color);"></i> Streaming...`;
-                    }).catch(e => {
-                         dom.infoMessage.innerHTML = `<i class="fas fa-info-circle"></i> Ready to play. Click the player to start.`;
-                    });
-
-                } catch (e) {
-                    showError(`Streaming failed: ${e.message}. The file might use an unsupported codec.`);
-                }
+                    // Convert the Node.js Buffer from getBuffer() into a transferable ArrayBuffer
+                    const arrayBuffer = encryptedBuffer.buffer.slice(encryptedBuffer.byteOffset, encryptedBuffer.byteOffset + encryptedBuffer.byteLength);
+                    worker.postMessage({ encryptedBuffer: arrayBuffer, keyHex }, [arrayBuffer]);
+                });
             });
         }
         
-        async function decryptEntireBlob(blob, key, name) {
-            try {
-                const buffer = await blob.arrayBuffer();
-                const keyW = CryptoJS.enc.Hex.parse(key);
-                const iv = CryptoJS.lib.WordArray.create(buffer.slice(0, 16));
-                const data = CryptoJS.lib.WordArray.create(buffer.slice(16));
-                const decrypted = CryptoJS.AES.decrypt({ciphertext: data}, keyW, {iv: iv});
-                const typedArray = new Uint8Array(decrypted.sigBytes);
-                for(let i=0; i<decrypted.sigBytes; i++) typedArray[i] = (decrypted.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
-                const finalBlob = new Blob([typedArray]);
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(finalBlob);
-                a.download = name;
-                a.click();
-            } catch (e) {
-                alert("Failed to decrypt for saving: " + e.message);
+        function renderStream(blob, filename) {
+            const fileType = getFileType(filename);
+            if (fileType === 'other') {
+                dom.infoMessage.textContent = "File is not streamable. Please save it to your device.";
+            } else {
+                let player;
+                if (fileType === 'video') { player = document.createElement('video'); player.autoplay = true; player.controls = true; }
+                else if (fileType === 'audio') { player = document.createElement('audio'); player.autoplay = true; player.controls = true; }
+                else if (fileType === 'image') { player = document.createElement('img'); }
+                
+                player.src = URL.createObjectURL(blob);
+                dom.playerArea.appendChild(player);
             }
+            prepareForSave(blob, filename);
         }
 
-        // --- Utility Functions ---
-        function showError(msg){dom.loader.style.display='none';dom.infoMessage.innerHTML=`<i class="fas fa-exclamation-triangle"></i> ${msg}`;dom.infoMessage.style.color='var(--danger-color)';}
-        function formatBytes(b,d=2){if(!+b)return"0 Bytes";const t=1024,e=["Bytes","KB","MB","GB","TB"],i=Math.floor(Math.log(b)/Math.log(t));return`${parseFloat((b/Math.pow(t,i)).toFixed(d))} ${e[i]}`}
-        function getFileType(fn){const e=fn.split('.').pop().toLowerCase();if(['mp4','webm','mkv'].includes(e))return'video';if(['mp3','flac','wav','ogg'].includes(e))return'audio';return'other'}
+        function prepareForSave(blob, filename) {
+            dom.saveFileButton.href = URL.createObjectURL(blob);
+            dom.saveFileButton.download = filename;
+            dom.saveFileButton.style.display = 'inline-block';
+        }
+
+        function showError(message){dom.loader.style.display='none';dom.choiceArea.style.display='none';dom.downloadProgress.style.display='none';dom.infoMessage.innerHTML=`<i class="fas fa-exclamation-triangle"></i> ${message}`;dom.infoMessage.style.color='var(--danger-color)';}
+        function formatBytes(bytes, d=2){if(!+bytes)return'0 Bytes';const k=1024,i=Math.floor(Math.log(bytes)/Math.log(k));return`${parseFloat((bytes/Math.pow(k,i)).toFixed(d))} ${['Bytes','KB','MB','GB','TB'][i]}`}
+        function getFileType(fn){const ext=fn.split('.').pop().toLowerCase();if(['mp4','webm','mkv'].includes(ext))return'video';if(['mp3','flac','wav','ogg'].includes(ext))return'audio';if(['png','jpg','jpeg','gif','webp'].includes(ext))return'image';return'other'}
         function escapeHTML(str){return str.replace(/[&<>'"]/g,t=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t))}
     });
     </script>
