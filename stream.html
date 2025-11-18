@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
     <style>
-        /* CSS is identical to the previous version, only adding styles for new buttons */
+        /* CSS is identical to the previous version. */
         :root { --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif; --font-hacker: 'Courier New', Courier, monospace; }
         :root, :root.light-mode { --bg-color: #f0f2f5; --text-color: #333; --header-color: #4a4a4a; --card-bg: rgba(255, 255, 255, 0.6); --card-border: rgba(255, 255, 255, 0.8); --neon-border-color: #007bff; --accent-color: #007bff; --accent-hover: #0056b3; --success-color: #28a745; --danger-color: #dc3545; }
         :root.dark-mode { --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #f5f5f5; --card-bg: rgba(10, 10, 10, 0.5); --card-border: rgba(255, 255, 255, 0.1); --neon-border-color: #00e5ff; --accent-color: #00e5ff; --accent-hover: #00b8d4; --success-color: #00e676; --danger-color: #ff5252; }
@@ -33,17 +33,9 @@
         .loader-container { padding: 40px 0; }
         .loader { margin: 0 auto; border: 5px solid #f3f3f3; border-top: 5px solid var(--accent-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* New styles for choice buttons */
         #choice-area { display: none; margin-top: 20px; }
-        .choice-button {
-            background-color: var(--accent-color); color: white; border: none;
-            padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: bold;
-            font-size: 1.2em; margin: 0 10px; transition: transform 0.2s, background-color 0.2s;
-        }
-        .choice-button:hover {
-            transform: translateY(-3px);
-            background-color: var(--accent-hover);
-        }
+        .choice-button { background-color: var(--accent-color); color: white; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.2em; margin: 0 10px; transition: transform 0.2s, background-color 0.2s; }
+        .choice-button:hover { transform: translateY(-3px); background-color: var(--accent-hover); }
         .choice-button i { margin-right: 10px; }
     </style>
 </head>
@@ -114,17 +106,15 @@
             peers: document.getElementById('peers'),
             playerArea: document.getElementById('player-area'),
             saveFileButton: document.getElementById('save-file-button'),
-            matrixCanvas: document.getElementById('matrix-canvas'),
         };
 
-        // --- Apply Theme from LocalStorage ---
-        (function applyTheme(){ if(localStorage.getItem('theme')==='dark')document.body.classList.add('dark-mode'); if(localStorage.getItem('hackerMode')==='true'){document.body.classList.add('hacker-mode'); /* You can add matrix.start() here if you define it */}})();
+        (function applyTheme(){ if(localStorage.getItem('theme')==='dark')document.body.classList.add('dark-mode'); if(localStorage.getItem('hackerMode')==='true'){document.body.classList.add('hacker-mode');}})();
 
         const params = new URLSearchParams(window.location.search);
         const magnetURI = params.get('magnet');
         const keyHex = params.get('key');
         const originalFilename = params.get('filename') || 'downloaded-file';
-        let torrentInstance = null; // To hold the torrent object
+        let torrentInstance = null;
 
         if (!magnetURI || !keyHex) {
             return showError("Error: Missing magnet link or decryption key in URL.");
@@ -164,11 +154,19 @@
             });
 
             torrentInstance.on('done', () => {
-                dom.infoMessage.innerHTML = `<i class="fas fa-lock-open"></i> Download complete. Decrypting in background...`;
+                dom.infoMessage.innerHTML = `<i class="fas-spinner fa-spin"></i> Download complete. Finalizing file...`;
                 dom.progressBar.style.width = '100%';
                 dom.progressBar.textContent = '100%';
                 
-                file.arrayBuffer().then(encryptedBuffer => {
+                // --- THIS IS THE CRITICAL FIX ---
+                // Use file.getBuffer instead of file.arrayBuffer
+                file.getBuffer((err, encryptedBuffer) => {
+                    if (err) {
+                        return showError(`Failed to get file buffer: ${err.message}`);
+                    }
+
+                    dom.infoMessage.innerHTML = `<i class="fas fa-lock-open"></i> Decrypting in background...`;
+                    
                     const workerScript = document.getElementById('decryption-worker').textContent;
                     const worker = new Worker(URL.createObjectURL(new Blob([workerScript])));
                     
@@ -184,54 +182,42 @@
                         
                         if (mode === 'stream') {
                             renderStream(blob, originalFilename);
-                        } else { // mode === 'download'
+                        } else {
                             prepareForSave(blob, originalFilename);
                         }
                     };
 
                     worker.onerror = (err) => { worker.terminate(); showError("A critical error occurred in the decryption worker."); };
-                    worker.postMessage({ encryptedBuffer, keyHex }, [encryptedBuffer]);
-
-                }).catch(err => showError(`Failed to read file for decryption: ${err.message}`));
+                    
+                    // Convert the Node.js Buffer from getBuffer() into a transferable ArrayBuffer
+                    const arrayBuffer = encryptedBuffer.buffer.slice(encryptedBuffer.byteOffset, encryptedBuffer.byteOffset + encryptedBuffer.byteLength);
+                    worker.postMessage({ encryptedBuffer: arrayBuffer, keyHex }, [arrayBuffer]);
+                });
             });
         }
         
         function renderStream(blob, filename) {
-            const url = URL.createObjectURL(blob);
             const fileType = getFileType(filename);
-            let player;
-
-            if (fileType === 'video') {
-                player = document.createElement('video');
-                player.autoplay = true;
-                player.controls = true;
-            } else if (fileType === 'audio') {
-                player = document.createElement('audio');
-                player.autoplay = true;
-                player.controls = true;
-            } else if (fileType === 'image') {
-                player = document.createElement('img');
+            if (fileType === 'other') {
+                dom.infoMessage.textContent = "File is not streamable. Please save it to your device.";
             } else {
-                dom.infoMessage.textContent = "File is not streamable. Please download it.";
-            }
-
-            if(player) {
-                player.src = url;
+                let player;
+                if (fileType === 'video') { player = document.createElement('video'); player.autoplay = true; player.controls = true; }
+                else if (fileType === 'audio') { player = document.createElement('audio'); player.autoplay = true; player.controls = true; }
+                else if (fileType === 'image') { player = document.createElement('img'); }
+                
+                player.src = URL.createObjectURL(blob);
                 dom.playerArea.appendChild(player);
             }
-            
-            // Also prepare the save button in case the user wants to save after streaming
             prepareForSave(blob, filename);
         }
 
         function prepareForSave(blob, filename) {
-            const url = URL.createObjectURL(blob);
-            dom.saveFileButton.href = url;
+            dom.saveFileButton.href = URL.createObjectURL(blob);
             dom.saveFileButton.download = filename;
             dom.saveFileButton.style.display = 'inline-block';
         }
 
-        // --- Utility Functions ---
         function showError(message){dom.loader.style.display='none';dom.choiceArea.style.display='none';dom.downloadProgress.style.display='none';dom.infoMessage.innerHTML=`<i class="fas fa-exclamation-triangle"></i> ${message}`;dom.infoMessage.style.color='var(--danger-color)';}
         function formatBytes(bytes, d=2){if(!+bytes)return'0 Bytes';const k=1024,i=Math.floor(Math.log(bytes)/Math.log(k));return`${parseFloat((bytes/Math.pow(k,i)).toFixed(d))} ${['Bytes','KB','MB','GB','TB'][i]}`}
         function getFileType(fn){const ext=fn.split('.').pop().toLowerCase();if(['mp4','webm','mkv'].includes(ext))return'video';if(['mp3','flac','wav','ogg'].includes(ext))return'audio';if(['png','jpg','jpeg','gif','webp'].includes(ext))return'image';return'other'}
