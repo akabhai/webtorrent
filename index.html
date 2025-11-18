@@ -3,61 +3,842 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P File Sharing & Streaming (WebTorrent)</title>
-    <link rel="stylesheet" href="style.css">
+    <title>P2P Secure WebTorrent File Sharer</title>
+    
+    <!-- CDNs -->
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+
+    <style>
+        /* --- CORE STYLES & THEMES --- */
+        :root {
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            --font-hacker: 'Courier New', Courier, monospace;
+        }
+
+        /* Light Theme (Default) */
+        :root, :root.light-mode {
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --header-color: #4a4a4a;
+            --card-bg: rgba(255, 255, 255, 0.6);
+            --card-border: rgba(255, 255, 255, 0.8);
+            --neon-border-color: #007bff;
+            --accent-color: #007bff;
+            --accent-hover: #0056b3;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --input-bg: rgba(255, 255, 255, 0.7);
+            --input-border: #ccc;
+        }
+
+        /* Dark Theme */
+        :root.dark-mode {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #f5f5f5;
+            --card-bg: rgba(10, 10, 10, 0.5);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --neon-border-color: #00e5ff;
+            --accent-color: #00e5ff;
+            --accent-hover: #00b8d4;
+            --success-color: #00e676;
+            --danger-color: #ff5252;
+            --warning-color: #ffd740;
+            --input-bg: rgba(40, 40, 40, 0.7);
+            --input-border: #444;
+        }
+        
+        /* Hacker Theme */
+        :root.hacker-mode {
+            --bg-color: #000;
+            --text-color: #0f0;
+            --header-color: #0f0;
+            --card-bg: rgba(0, 20, 0, 0.6);
+            --card-border: rgba(0, 255, 0, 0.3);
+            --neon-border-color: #0f0;
+            --accent-color: #0f0;
+            --accent-hover: #3f3;
+            --success-color: #0f0;
+            --danger-color: #f00;
+            --warning-color: #ff0;
+            --input-bg: rgba(0, 15, 0, 0.8);
+            --input-border: #0f0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+
+        body.hacker-mode {
+            font-family: var(--font-hacker);
+        }
+
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            display: none;
+        }
+
+        body.hacker-mode #matrix-canvas {
+            display: block;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            pointer-events: none;
+            animation: neon-glow 3s infinite alternate;
+            z-index: -1;
+        }
+        
+        @keyframes neon-glow {
+            from { border-color: transparent; }
+            to { border-color: var(--neon-border-color); box-shadow: 0 0 10px var(--neon-border-color), 0 0 20px var(--neon-border-color); }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .animated-header {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--header-color);
+            animation: color-cycle 10s infinite;
+        }
+
+        @keyframes color-cycle {
+            0%   { color: var(--header-color); }
+            50%  { color: var(--accent-color); }
+            100% { color: var(--header-color); }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .toggle-switch input { display: none; }
+        .slider {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            background-color: #ccc;
+            border-radius: 20px;
+            transition: 0.3s;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        input:checked + .slider { background-color: var(--accent-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* --- Uploader Section --- */
+        #uploader { text-align: center; }
+        #drop-zone {
+            border: 2px dashed var(--input-border);
+            border-radius: 10px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+        #drop-zone.dragover {
+            border-color: var(--accent-color);
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        #file-input { display: none; }
+
+        .advanced-scanner {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #status, #scan-status {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+        #scan-status.danger { color: var(--danger-color); }
+        #scan-status.warning { color: var(--warning-color); }
+        #scan-status.success { color: var(--success-color); }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: var(--accent-hover); }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-danger { background-color: var(--danger-color); }
+
+        /* --- Seeding Result Section --- */
+        #seeding-info { display: none; }
+        .result-box {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .result-box input {
+            flex-grow: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            font-family: inherit;
+        }
+        .result-box button { border-radius: 0 5px 5px 0; margin-left: -5px; }
+        
+        #qrcode {
+            margin: 20px auto;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            width: 138px;
+            height: 138px;
+        }
+
+        /* --- History Section --- */
+        #history table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #history th, #history td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+        #history th { font-weight: bold; }
+        .history-actions button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            font-size: 0.9em;
+        }
+        .file-icon { font-size: 1.5em; }
+
+        /* --- Loader Animation --- */
+        .loader-container {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .result-box { flex-direction: column; gap: 10px; }
+            .result-box input { width: 100%; }
+            .result-box button { width: 100%; border-radius: 5px; margin-left: 0; }
+            .history-actions { display: flex; flex-direction: column; gap: 5px; }
+        }
+    </style>
 </head>
 <body>
+
+    <canvas id="matrix-canvas"></canvas>
+
     <div class="container">
         <header>
-            <h1>P2P File Sharing & Streaming</h1>
-            <p>Share files directly between browsers. Stream video and audio instantly.</p>
+            <h1 class="animated-header">P2P Secure WebTorrent File Sharer</h1>
+            <p>GitHub Pages Edition</p>
         </header>
 
-        <div class="security-notice">
-            <h3><img src="https://icongr.am/feather/shield.svg?size=20&color=d9534f" alt="Security Icon"> Important Notices</h3>
-            <ul>
-                <li><strong>Purely P2P:</strong> Files are transferred directly from your browser to the recipient's browser.</li>
-                <li><strong>No Server Storage:</strong> Your files are NEVER uploaded to a central server.</li>
-                <li><strong>Temporary Seeding:</strong> Files are only available as long as you keep this page open. Closing the tab stops the transfer.</li>
-            </ul>
+        <div class="controls">
+            <label class="toggle-switch">
+                <i class="fas fa-moon"></i>
+                <input type="checkbox" id="theme-toggle">
+                <span class="slider"></span>
+            </label>
+            <label class="toggle-switch">
+                <i class="fas fa-user-secret"></i>
+                <input type="checkbox" id="hacker-toggle">
+                <span class="slider"></span>
+            </label>
         </div>
 
-        <main>
-            <section class="box" id="seeding-section">
-                <h2>1. Share a File (Seed)</h2>
-                <p>Select a file to begin seeding. A magnet link will be generated for you to share.</p>
-                <div class="file-input-wrapper">
-                    <input type="file" id="file-input" multiple>
-                    <label for="file-input" class="button">Choose Files</label>
+        <div class="card">
+            <h2>1. Select a File to Share</h2>
+            <div id="uploader">
+                <div id="drop-zone">
+                    <p>Drag & Drop a file here, or click to select</p>
+                    <p id="file-name"></p>
+                    <input type="file" id="file-input">
                 </div>
-                <div id="seeding-list" class="torrent-list">
-                    <!-- Seeding torrents will be dynamically added here -->
+                <div class="advanced-scanner">
+                     <label class="toggle-switch">
+                        <span>Advanced File Scanner</span>
+                        <input type="checkbox" id="advanced-scanner-toggle">
+                        <span class="slider"></span>
+                    </label>
                 </div>
-            </section>
+                <div id="scan-status"></div>
+                <button id="share-button" disabled>Create Secure Link</button>
+            </div>
+            <div id="status"></div>
+            <div class="loader-container" id="loader">
+                <div class="loader"></div>
+                <p id="loader-text">Preparing P2P Swarm...</p>
+            </div>
+            <div id="seeding-info">
+                <h3><i class="fas fa-check-circle" style="color: var(--success-color);"></i> Link Ready!</h3>
+                <p><strong>File:</strong> <span id="result-filename"></span> (<span id="result-filesize"></span>)</p>
+                <p><strong>Status:</strong> Seeding to P2P network... <span style="color: var(--success-color);">Encrypted ✔</span></p>
+                <div class="result-box">
+                    <input type="text" id="magnet-link" readonly>
+                    <button id="copy-button"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                <div style="display: flex; justify-content: space-around; align-items: center; margin-top: 20px; flex-wrap: wrap;">
+                    <div id="qrcode"></div>
+                    <button id="open-stream-button"><i class="fas fa-external-link-alt"></i> Open Stream Page</button>
+                </div>
+            </div>
+        </div>
 
-            <section class="box" id="downloading-section">
-                <h2>2. Receive a File (Download or Stream)</h2>
-                <p>Paste a magnet link below to begin.</p>
-                <!-- ADDED: Note about streaming compatibility -->
-                <p class="streaming-note">
-                    <strong>Note:</strong> Streaming works best with web-compatible formats like <code>.mp4</code>, <code>.webm</code>, and <code>.mp3</code>.
-                </p>
-                <div class="magnet-input-wrapper">
-                    <input type="text" id="magnet-input" placeholder="Paste magnet link here...">
-                    <button id="download-btn" class="button">Get Files</button>
-                </div>
-                <div id="download-list" class="torrent-list">
-                    <!-- Downloading torrents will be dynamically added here -->
-                </div>
-            </section>
-        </main>
-        
-        <footer>
-            <p>Powered by <a href="https://webtorrent.io/" target="_blank" rel="noopener noreferrer">WebTorrent</a>. Runs entirely in your browser.</p>
-        </footer>
+        <div class="card" id="history">
+            <h2>Your Previous Uploads</h2>
+            <div id="history-container">
+                <p id="welcome-message">Welcome! Your secure uploads will appear here.</p>
+                <table id="history-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-file-alt"></i></th>
+                            <th>File Name</th>
+                            <th>Size</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
-    <script src="script.js"></script>
+    <audio id="click-sound" src="https://www.soundjay.com/button/sounds/button-16.mp3" preload="auto"></audio>
+    <audio id="type-sound" src="https://www.soundjay.com/communication/sounds/keyboard-key-01.mp3" preload="auto"></audio>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- App State & Config ---
+        const app = {
+            client: new WebTorrent(),
+            selectedFile: null,
+            hackerMode: false,
+            // Known bad hashes (dummy example - e.g., hash of EICAR test string)
+            maliciousHashes: ['275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f'],
+            allowedFormats: ['mp4', 'mkv', 'webm', 'mp3', 'flac', 'png', 'jpg', 'jpeg', 'pdf', 'txt', 'zip'],
+            blockedFormats: ['exe', 'apk', 'bat', 'scr', 'com', 'jar', 'dmg', 'iso', 'msi'],
+        };
+
+        // --- DOM Elements ---
+        const dom = {
+            themeToggle: document.getElementById('theme-toggle'),
+            hackerToggle: document.getElementById('hacker-toggle'),
+            dropZone: document.getElementById('drop-zone'),
+            fileInput: document.getElementById('file-input'),
+            fileNameDisplay: document.getElementById('file-name'),
+            shareButton: document.getElementById('share-button'),
+            advancedScannerToggle: document.getElementById('advanced-scanner-toggle'),
+            scanStatus: document.getElementById('scan-status'),
+            status: document.getElementById('status'),
+            loader: document.getElementById('loader'),
+            loaderText: document.getElementById('loader-text'),
+            seedingInfo: document.getElementById('seeding-info'),
+            resultFilename: document.getElementById('result-filename'),
+            resultFilesize: document.getElementById('result-filesize'),
+            magnetLink: document.getElementById('magnet-link'),
+            copyButton: document.getElementById('copy-button'),
+            openStreamButton: document.getElementById('open-stream-button'),
+            qrcodeContainer: document.getElementById('qrcode'),
+            historyContainer: document.getElementById('history-container'),
+            welcomeMessage: document.getElementById('welcome-message'),
+            historyTable: document.getElementById('history-table'),
+            historyTableBody: document.querySelector('#history-table tbody'),
+            matrixCanvas: document.getElementById('matrix-canvas'),
+            clickSound: document.getElementById('click-sound'),
+            typeSound: document.getElementById('type-sound'),
+        };
+
+        // --- UI & THEME ---
+        const ui = {
+            init() {
+                // Load settings
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
+                    document.body.classList.add('dark-mode');
+                    dom.themeToggle.checked = true;
+                }
+                const savedHacker = localStorage.getItem('hackerMode');
+                if (savedHacker === 'true') {
+                    app.hackerMode = true;
+                    dom.hackerToggle.checked = true;
+                    this.toggleHackerMode(true, true);
+                }
+
+                dom.themeToggle.addEventListener('change', () => this.toggleTheme());
+                dom.hackerToggle.addEventListener('change', () => this.toggleHackerMode(dom.hackerToggle.checked));
+                
+                // Drag and Drop
+                dom.dropZone.addEventListener('click', () => dom.fileInput.click());
+                dom.dropZone.addEventListener('dragover', e => { e.preventDefault(); dom.dropZone.classList.add('dragover'); });
+                dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover'));
+                dom.dropZone.addEventListener('drop', e => {
+                    e.preventDefault();
+                    dom.dropZone.classList.remove('dragover');
+                    if (e.dataTransfer.files.length) {
+                        dom.fileInput.files = e.dataTransfer.files;
+                        handleFileSelect({ target: dom.fileInput });
+                    }
+                });
+            },
+            toggleTheme() {
+                this.playSound(dom.clickSound);
+                document.body.classList.toggle('dark-mode');
+                localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+            },
+            toggleHackerMode(enable, silent = false) {
+                if (!silent) this.playSound(dom.clickSound);
+                app.hackerMode = enable;
+                document.body.classList.toggle('hacker-mode', enable);
+                localStorage.setItem('hackerMode', enable);
+                if (enable) matrix.start(); else matrix.stop();
+            },
+            showLoader(text) {
+                dom.loaderText.textContent = text;
+                dom.loader.style.display = 'flex';
+                dom.uploader.style.display = 'none';
+                dom.seedingInfo.style.display = 'none';
+            },
+            hideLoader() {
+                dom.loader.style.display = 'none';
+            },
+            showSeedingInfo(data) {
+                dom.resultFilename.textContent = data.filename;
+                dom.resultFilesize.textContent = data.filesize;
+                dom.magnetLink.value = data.link;
+                dom.openStreamButton.onclick = () => window.open(data.link, '_blank');
+                
+                dom.qrcodeContainer.innerHTML = "";
+                new QRCode(dom.qrcodeContainer, {
+                    text: data.link,
+                    width: 128,
+                    height: 128,
+                });
+                
+                this.hideLoader();
+                dom.seedingInfo.style.display = 'block';
+            },
+            updateStatus(message, type = 'info') {
+                dom.status.textContent = message;
+                dom.status.style.color = type === 'error' ? 'var(--danger-color)' : 'var(--text-color)';
+            },
+            updateScanStatus(message, type = 'info') {
+                dom.scanStatus.textContent = message;
+                dom.scanStatus.className = type; // success, warning, danger
+            },
+            playSound(sound) {
+                if (app.hackerMode) {
+                    sound.currentTime = 0;
+                    sound.play();
+                }
+            }
+        };
+
+        // --- Matrix Effect for Hacker Mode ---
+        const matrix = {
+            intervalId: null,
+            start() {
+                const canvas = dom.matrixCanvas;
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}';
+                const fontSize = 14;
+                const columns = canvas.width / fontSize;
+                const drops = Array(Math.floor(columns)).fill(1);
+
+                function draw() {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#0f0';
+                    ctx.font = `${fontSize}px monospace`;
+                    for (let i = 0; i < drops.length; i++) {
+                        const text = letters[Math.floor(Math.random() * letters.length)];
+                        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                            drops[i] = 0;
+                        }
+                        drops[i]++;
+                    }
+                }
+                this.intervalId = setInterval(draw, 33);
+            },
+            stop() {
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                    const ctx = dom.matrixCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, dom.matrixCanvas.width, dom.matrixCanvas.height);
+                }
+            }
+        };
+
+        // --- File Handling & Seeding ---
+        dom.fileInput.addEventListener('change', handleFileSelect);
+        dom.shareButton.addEventListener('click', startSeeding);
+        dom.copyButton.addEventListener('click', copyMagnetLink);
+        
+        async function handleFileSelect(event) {
+            ui.playSound(dom.clickSound);
+            app.selectedFile = event.target.files[0];
+            if (!app.selectedFile) return;
+
+            dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
+            ui.updateScanStatus('Scanning file...', 'info');
+
+            const isSafe = await fileScanner.scan(app.selectedFile);
+
+            if (isSafe) {
+                ui.updateScanStatus('File seems safe ✔', 'success');
+                dom.shareButton.disabled = false;
+            } else {
+                dom.fileNameDisplay.textContent = '';
+                app.selectedFile = null;
+                dom.fileInput.value = ''; // Reset file input
+                dom.shareButton.disabled = true;
+            }
+        }
+
+        async function startSeeding() {
+            if (!app.selectedFile) return;
+            ui.playSound(dom.clickSound);
+            ui.showLoader('Encrypting file...');
+            
+            const file = app.selectedFile;
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                ui.updateStatus('');
+                const arrayBuffer = event.target.result;
+
+                // 1. Encryption
+                const key = CryptoJS.lib.WordArray.random(32); // 256-bit key
+                const iv = CryptoJS.lib.WordArray.random(16); // 128-bit IV
+                const wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
+                const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
+                
+                // Combine iv and ciphertext: iv + ciphertext
+                const ivHex = CryptoJS.enc.Hex.parse(iv.toString());
+                const combined = ivHex.concat(encrypted.ciphertext);
+                const encryptedBlob = new Blob([wordArrayToUint8Array(combined)]);
+                const encryptedFile = new File([encryptedBlob], `encrypted-${Date.now()}.dat`);
+
+                // 2. Seeding
+                ui.showLoader('Connecting to P2P network...');
+                app.client.seed(encryptedFile, (torrent) => {
+                    ui.showLoader('Generating secure link...');
+                    const keyHex = key.toString(CryptoJS.enc.Hex);
+                    const streamPageUrl = `${window.location.origin}${window.location.pathname.replace('index.html', '')}stream.html`;
+                    
+                    const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(file.name)}`;
+
+                    const data = {
+                        id: Date.now(),
+                        filename: file.name,
+                        filesize: formatBytes(file.size),
+                        link: shareableLink,
+                        key: keyHex,
+                        timestamp: Date.now(),
+                    };
+                    
+                    ui.showSeedingInfo(data);
+                    historyManager.add(data);
+                    
+                    // Keep seeding
+                    ui.updateStatus(`Seeding ${file.name}. Keep this page open.`);
+                });
+            };
+
+            reader.onerror = () => {
+                ui.hideLoader();
+                ui.updateStatus('Error reading file.', 'error');
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function copyMagnetLink() {
+            ui.playSound(dom.clickSound);
+            navigator.clipboard.writeText(dom.magnetLink.value).then(() => {
+                dom.copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => dom.copyButton.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
+            });
+        }
+
+        // --- File Scanner ---
+        const fileScanner = {
+            async scan(file) {
+                // 1. Check format and extension
+                const extension = file.name.split('.').pop().toLowerCase();
+                if (app.blockedFormats.includes(extension)) {
+                    ui.updateScanStatus(`Error: File format ".${extension}" is disallowed for security reasons.`, 'danger');
+                    return false;
+                }
+                if (!app.allowedFormats.includes(extension)) {
+                    ui.updateScanStatus(`Warning: File format ".${extension}" is not on the recommended list. Proceed with caution.`, 'warning');
+                    // We allow it but warn. Change to `return false;` to block.
+                }
+
+                // 2. Double extension check
+                const suspiciousExtensions = ['.pdf.exe', '.jpg.exe', '.mp4.exe', '.txt.bat'];
+                for (const susExt of suspiciousExtensions) {
+                    if (file.name.toLowerCase().endsWith(susExt)) {
+                        ui.updateScanStatus(`Error: Suspicious double extension detected! (${susExt})`, 'danger');
+                        return false;
+                    }
+                }
+
+                // 3. MIME type mismatch
+                if (file.type) {
+                    const expectedMime = this.getMimeType(extension);
+                    if (expectedMime && !file.type.startsWith(expectedMime.split('/')[0])) {
+                         ui.updateScanStatus(`Warning: MIME type mismatch. Extension is ".${extension}" but browser reports type "${file.type}".`, 'warning');
+                    }
+                }
+
+                // Advanced checks if enabled
+                if (dom.advancedScannerToggle.checked) {
+                    ui.showLoader('Performing advanced scan...');
+                    // 4. Hash-based check
+                    const hash = await this.calculateHash(file);
+                    if (app.maliciousHashes.includes(hash)) {
+                        ui.updateScanStatus('Error: File matches a known malicious signature!', 'danger');
+                        ui.hideLoader();
+                        return false;
+                    }
+
+                    // 5. Entropy check (for high-entropy packed malware)
+                    const entropy = await this.calculateEntropy(file);
+                    if (entropy > 7.5) { // High entropy can indicate compressed or encrypted data (or malware)
+                         ui.updateScanStatus(`Warning: File has high entropy (${entropy.toFixed(2)}). This can be normal for zip/video files, but suspicious for others.`, 'warning');
+                    }
+                    ui.hideLoader();
+                }
+                
+                return true;
+            },
+            getMimeType(ext) {
+                const mimes = { 'mp4': 'video/mp4', 'png': 'image/png', 'jpg': 'image/jpeg', 'pdf': 'application/pdf', 'zip': 'application/zip', 'txt': 'text/plain' };
+                return mimes[ext];
+            },
+            async calculateHash(file) {
+                const buffer = await file.arrayBuffer();
+                const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            },
+            async calculateEntropy(file) {
+                const buffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(buffer);
+                const map = {};
+                for (const byte of bytes) {
+                    map[byte] = (map[byte] || 0) + 1;
+                }
+                let entropy = 0;
+                const len = bytes.length;
+                for (const p of Object.values(map)) {
+                    const freq = p / len;
+                    entropy -= freq * Math.log2(freq);
+                }
+                return entropy;
+            }
+        };
+
+        // --- History Manager ---
+        const historyManager = {
+            key: 'webtorrent-history',
+            load() {
+                let history = JSON.parse(localStorage.getItem(this.key)) || [];
+                // Filter out entries older than 30 days
+                const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+                history = history.filter(item => item.timestamp > thirtyDaysAgo);
+                localStorage.setItem(this.key, JSON.stringify(history));
+
+                if (history.length > 0) {
+                    dom.welcomeMessage.style.display = 'none';
+                    dom.historyTable.style.display = 'table';
+                    dom.historyTableBody.innerHTML = '';
+                    history.sort((a,b) => b.timestamp - a.timestamp).forEach(item => this.renderRow(item));
+                } else {
+                    dom.welcomeMessage.style.display = 'block';
+                    dom.historyTable.style.display = 'none';
+                }
+            },
+            add(item) {
+                let history = JSON.parse(localStorage.getItem(this.key)) || [];
+                history.push(item);
+                localStorage.setItem(this.key, JSON.stringify(history));
+                this.load(); // Reload to display
+            },
+            delete(id) {
+                ui.playSound(dom.clickSound);
+                let history = JSON.parse(localStorage.getItem(this.key)) || [];
+                history = history.filter(item => item.id !== id);
+                localStorage.setItem(this.key, JSON.stringify(history));
+                this.load();
+            },
+            renderRow(item) {
+                const row = document.createElement('tr');
+                const fileExt = item.filename.split('.').pop();
+                row.innerHTML = `
+                    <td><i class="${getFileIconClass(fileExt)} file-icon"></i></td>
+                    <td>${escapeHTML(item.filename)}</td>
+                    <td>${item.filesize}</td>
+                    <td>${new Date(item.timestamp).toLocaleString()}</td>
+                    <td class="history-actions">
+                        <button class="btn-copy-magnet" data-link="${item.link}"><i class="fas fa-copy"></i> Copy</button>
+                        <button onclick="window.open('${item.link}', '_blank')"><i class="fas fa-external-link-alt"></i> Open</button>
+                        <button class="btn-delete-history btn-danger" data-id="${item.id}"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                dom.historyTableBody.appendChild(row);
+
+                row.querySelector('.btn-delete-history').addEventListener('click', (e) => this.delete(item.id));
+                row.querySelector('.btn-copy-magnet').addEventListener('click', (e) => {
+                    const btn = e.currentTarget;
+                    navigator.clipboard.writeText(item.link).then(() => {
+                        btn.innerHTML = '<i class="fas fa-check"></i>';
+                        setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
+                    });
+                });
+            }
+        };
+
+        // --- Utility Functions ---
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function wordArrayToUint8Array(wordArray) {
+            const l = wordArray.sigBytes;
+            const u8_array = new Uint8Array(l);
+            for (let i = 0; i < l; i++) {
+                u8_array[i] = (wordArray.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+            }
+            return u8_array;
+        }
+
+        function getFileIconClass(extension) {
+            const icons = {
+                'mp4': 'fas fa-file-video', 'webm': 'fas fa-file-video', 'mkv': 'fas fa-file-video',
+                'mp3': 'fas fa-file-audio', 'flac': 'fas fa-file-audio',
+                'png': 'fas fa-file-image', 'jpg': 'fas fa-file-image', 'jpeg': 'fas fa-file-image',
+                'pdf': 'fas fa-file-pdf', 'zip': 'fas fa-file-archive', 'txt': 'fas fa-file-alt'
+            };
+            return icons[extension.toLowerCase()] || 'fas fa-file';
+        }
+        
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;',
+                    "'": '&#39;', '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // --- App Initialization ---
+        ui.init();
+        historyManager.load();
+    });
+    </script>
 </body>
 </html>
