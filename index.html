@@ -17,156 +17,699 @@
             --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
             --font-hacker: 'Courier New', Courier, monospace;
         }
+
+        /* Light Theme (Default) */
         :root, :root.light-mode {
-            --bg-color: #f0f2f5; --text-color: #333; --header-color: #4a4a4a;
-            --card-bg: rgba(255, 255, 255, 0.6); --card-border: rgba(255, 255, 255, 0.8);
-            --neon-border-color: #007bff; --accent-color: #007bff; --accent-hover: #0056b3;
-            --success-color: #28a745; --danger-color: #dc3545; --warning-color: #ffc107;
-            --input-bg: rgba(255, 255, 255, 0.7); --input-border: #ccc;
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --header-color: #4a4a4a;
+            --card-bg: rgba(255, 255, 255, 0.6);
+            --card-border: rgba(255, 255, 255, 0.8);
+            --neon-border-color: #007bff;
+            --accent-color: #007bff;
+            --accent-hover: #0056b3;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --input-bg: rgba(255, 255, 255, 0.7);
+            --input-border: #ccc;
         }
+
+        /* Dark Theme */
         :root.dark-mode {
-            --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #f5f5f5;
-            --card-bg: rgba(10, 10, 10, 0.5); --card-border: rgba(255, 255, 255, 0.1);
-            --neon-border-color: #00e5ff; --accent-color: #00e5ff; --accent-hover: #00b8d4;
-            --success-color: #00e676; --danger-color: #ff5252; --warning-color: #ffd740;
-            --input-bg: rgba(40, 40, 40, 0.7); --input-border: #444;
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-color: #f5f5f5;
+            --card-bg: rgba(10, 10, 10, 0.5);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --neon-border-color: #00e5ff;
+            --accent-color: #00e5ff;
+            --accent-hover: #00b8d4;
+            --success-color: #00e676;
+            --danger-color: #ff5252;
+            --warning-color: #ffd740;
+            --input-bg: rgba(40, 40, 40, 0.7);
+            --input-border: #444;
         }
+        
+        /* Hacker Theme */
         :root.hacker-mode {
-            --bg-color: #000; --text-color: #0f0; --header-color: #0f0;
-            --card-bg: rgba(0, 20, 0, 0.6); --card-border: rgba(0, 255, 0, 0.3);
-            --neon-border-color: #0f0; --accent-color: #0f0; --accent-hover: #3f3;
-            --success-color: #0f0; --danger-color: #f00; --warning-color: #ff0;
-            --input-bg: rgba(0, 15, 0, 0.8); --input-border: #0f0;
+            --bg-color: #000;
+            --text-color: #0f0;
+            --header-color: #0f0;
+            --card-bg: rgba(0, 20, 0, 0.6);
+            --card-border: rgba(0, 255, 0, 0.3);
+            --neon-border-color: #0f0;
+            --accent-color: #0f0;
+            --accent-hover: #3f3;
+            --success-color: #0f0;
+            --danger-color: #f00;
+            --warning-color: #ff0;
+            --input-bg: rgba(0, 15, 0, 0.8);
+            --input-border: #0f0;
         }
-        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; transition: background-color .3s,color .3s; overflow-x: hidden; }
-        body.hacker-mode { font-family: var(--font-hacker); }
-        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; display: none; }
-        body.hacker-mode #matrix-canvas { display: block; }
-        .container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 15px; padding: 25px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 8px 32px 0 rgba(0,0,0,.1); transition: all .3s ease; position: relative; overflow: hidden; }
-        .card::before { content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: 15px; border: 2px solid transparent; pointer-events: none; animation: neon-glow 3s infinite alternate; z-index: -1; }
-        @keyframes neon-glow { from { border-color: transparent; } to { border-color: var(--neon-border-color); box-shadow: 0 0 10px var(--neon-border-color), 0 0 20px var(--neon-border-color); } }
-        header { text-align: center; margin-bottom: 10px; }
-        .animated-header { font-size: 2.5em; font-weight: 700; color: var(--header-color); animation: color-cycle 10s infinite; }
-        @keyframes color-cycle { 0% { color: var(--header-color); } 50% { color: var(--accent-color); } 100% { color: var(--header-color); } }
-        .controls { display: flex; justify-content: flex-end; gap: 15px; margin-bottom: 20px; }
-        .toggle-switch { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+
+        body.hacker-mode {
+            font-family: var(--font-hacker);
+        }
+
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            display: none;
+        }
+
+        body.hacker-mode #matrix-canvas {
+            display: block;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            pointer-events: none;
+            animation: neon-glow 3s infinite alternate;
+            z-index: -1;
+        }
+        
+        @keyframes neon-glow {
+            from { border-color: transparent; }
+            to { border-color: var(--neon-border-color); box-shadow: 0 0 10px var(--neon-border-color), 0 0 20px var(--neon-border-color); }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .animated-header {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--header-color);
+            animation: color-cycle 10s infinite;
+        }
+
+        @keyframes color-cycle {
+            0%   { color: var(--header-color); }
+            50%  { color: var(--accent-color); }
+            100% { color: var(--header-color); }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
         .toggle-switch input { display: none; }
-        .slider { position: relative; width: 40px; height: 20px; background-color: #ccc; border-radius: 20px; transition: .3s; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #fff; border-radius: 50%; transition: .3s; }
+        .slider {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            background-color: #ccc;
+            border-radius: 20px;
+            transition: 0.3s;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
         input:checked + .slider { background-color: var(--accent-color); }
         input:checked + .slider:before { transform: translateX(20px); }
+
+        /* --- Uploader Section --- */
         #uploader { text-align: center; }
-        #drop-zone { border: 2px dashed var(--input-border); border-radius: 10px; padding: 40px 20px; cursor: pointer; transition: border-color .3s, background-color .3s; }
-        #drop-zone.dragover { border-color: var(--accent-color); background-color: rgba(0, 123, 255, .1); }
+        #drop-zone {
+            border: 2px dashed var(--input-border);
+            border-radius: 10px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+        #drop-zone.dragover {
+            border-color: var(--accent-color);
+            background-color: rgba(0, 123, 255, 0.1);
+        }
         #file-input { display: none; }
-        #status, #scan-status { margin-top: 15px; font-weight: 700; min-height: 24px; }
+
+        .advanced-scanner {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #status, #scan-status {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 24px;
+        }
         #scan-status.danger { color: var(--danger-color); }
         #scan-status.warning { color: var(--warning-color); }
         #scan-status.success { color: var(--success-color); }
-        button { background-color: var(--accent-color); color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: 700; transition: background-color .3s; }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
         button:hover { background-color: var(--accent-hover); }
         button:disabled { background-color: #6c757d; cursor: not-allowed; }
         .btn-danger { background-color: var(--danger-color); }
+
+        /* --- Seeding Result Section --- */
         #seeding-info { display: none; }
-        .result-box { display: flex; align-items: center; margin-top: 15px; background-color: var(--input-bg); border: 1px solid var(--input-border); border-radius: 5px; padding: 10px; }
-        .result-box input { flex-grow: 1; border: none; background: 0 0; color: var(--text-color); font-family: inherit; }
+        .result-box {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .result-box input {
+            flex-grow: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            font-family: inherit;
+        }
         .result-box button { border-radius: 0 5px 5px 0; margin-left: -5px; }
-        #qrcode { margin: 20px auto; padding: 10px; background: #fff; border-radius: 5px; width: 138px; height: 138px; }
-        #history table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        #history th, #history td { padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); }
-        .history-actions button { padding: 5px 10px; margin: 2px; font-size: .9em; }
+        
+        #qrcode {
+            margin: 20px auto;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            width: 138px;
+            height: 138px;
+        }
+
+        /* --- History Section --- */
+        #history table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #history th, #history td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .history-actions button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            font-size: 0.9em;
+        }
         .file-icon { font-size: 1.5em; }
-        .loader-container { display: none; justify-content: center; align-items: center; flex-direction: column; gap: 10px; }
-        .loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--accent-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .seeding-indicator { color: var(--success-color); font-weight: bold; font-size: 0.9em; }
-        @media (max-width: 600px) { body { padding: 10px; } .result-box { flex-direction: column; gap: 10px; } .result-box input { width: 100%; } .result-box button { width: 100%; border-radius: 5px; margin-left: 0; } .history-actions { display: flex; flex-direction: column; gap: 5px; align-items: flex-start;} }
+
+        /* --- Loader Animation --- */
+        .loader-container {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .result-box { flex-direction: column; gap: 10px; }
+            .result-box input { width: 100%; }
+            .result-box button { width: 100%; border-radius: 5px; margin-left: 0; }
+            .history-actions { display: flex; flex-direction: column; gap: 5px; }
+        }
     </style>
 </head>
 <body>
+
     <canvas id="matrix-canvas"></canvas>
+
     <div class="container">
         <header>
             <h1 class="animated-header">P2P Secure WebTorrent File Sharer</h1>
             <p>GitHub Pages Edition</p>
         </header>
+
         <div class="controls">
-            <label class="toggle-switch"><i class="fas fa-moon"></i><input type="checkbox" id="theme-toggle"><span class="slider"></span></label>
-            <label class="toggle-switch"><i class="fas fa-user-secret"></i><input type="checkbox" id="hacker-toggle"><span class="slider"></span></label>
+            <label class="toggle-switch">
+                <i class="fas fa-moon"></i>
+                <input type="checkbox" id="theme-toggle">
+                <span class="slider"></span>
+            </label>
+            <label class="toggle-switch">
+                <i class="fas fa-user-secret"></i>
+                <input type="checkbox" id="hacker-toggle">
+                <span class="slider"></span>
+            </label>
         </div>
+
         <div class="card">
             <h2>1. Select a File to Share</h2>
             <div id="uploader">
-                <div id="drop-zone"><p>Drag & Drop a file here, or click to select</p><p id="file-name"></p><input type="file" id="file-input"></div>
+                <div id="drop-zone">
+                    <p>Drag & Drop a file here, or click to select</p>
+                    <p id="file-name"></p>
+                    <input type="file" id="file-input">
+                </div>
+                <div class="advanced-scanner">
+                     <label class="toggle-switch">
+                        <span>Advanced File Scanner</span>
+                        <input type="checkbox" id="advanced-scanner-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
                 <div id="scan-status"></div>
                 <button id="share-button" disabled>Create Secure Link</button>
             </div>
             <div id="status"></div>
-            <div class="loader-container" id="loader"><div class="loader"></div><p id="loader-text">...</p></div>
+            <div class="loader-container" id="loader">
+                <div class="loader"></div>
+                <p id="loader-text">Preparing P2P Swarm...</p>
+            </div>
             <div id="seeding-info">
                 <h3><i class="fas fa-check-circle" style="color: var(--success-color);"></i> Link Ready!</h3>
                 <p><strong>File:</strong> <span id="result-filename"></span> (<span id="result-filesize"></span>)</p>
                 <p><strong>Status:</strong> Seeding to P2P network... <span style="color: var(--success-color);">Encrypted ✔</span></p>
-                <div class="result-box"><input type="text" id="magnet-link" readonly><button id="copy-button"><i class="fas fa-copy"></i> Copy</button></div>
+                <div class="result-box">
+                    <input type="text" id="magnet-link" readonly>
+                    <button id="copy-button"><i class="fas fa-copy"></i> Copy</button>
+                </div>
                 <div style="display: flex; justify-content: space-around; align-items: center; margin-top: 20px; flex-wrap: wrap;">
-                    <div id="qrcode"></div><button id="open-stream-button"><i class="fas fa-external-link-alt"></i> Open Stream Page</button>
+                    <div id="qrcode"></div>
+                    <button id="open-stream-button"><i class="fas fa-external-link-alt"></i> Open Stream Page</button>
                 </div>
             </div>
         </div>
+
         <div class="card" id="history">
-            <h2>Your Previous Uploads (Saved in this Browser)</h2>
+            <h2>Your Previous Uploads</h2>
             <div id="history-container">
                 <p id="welcome-message">Welcome! Your secure uploads will appear here.</p>
                 <table id="history-table" style="display: none;">
-                    <thead><tr><th><i class="fas fa-file-alt"></i></th><th>File Name</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-file-alt"></i></th>
+                            <th>File Name</th>
+                            <th>Size</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
                     <tbody></tbody>
                 </table>
             </div>
         </div>
     </div>
+
     <audio id="click-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2d82914c68.mp3" preload="auto"></audio>
-    <script id="encryption-worker" type="javascript/worker">self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');self.onmessage=function(e){const t=e.data;try{const e=CryptoJS.lib.WordArray.random(32),r=CryptoJS.lib.WordArray.random(16),o=CryptoJS.lib.WordArray.create(t),a=CryptoJS.AES.encrypt(o,e,{iv:r}),s=r.concat(a.ciphertext),c=s.sigBytes,n=new Uint8Array(c);for(let t=0;t<c;t++)n[t]=s.words[t>>>2]>>>24-(t%4)*8&255;const i=n.buffer;self.postMessage({encryptedBuffer:i,keyHex:e.toString(CryptoJS.enc.Hex)},[i])}catch(t){self.postMessage({error:t.message})}};</script>
+
+    <!-- INLINE WEB WORKER FOR NON-BLOCKING ENCRYPTION -->
+    <script id="encryption-worker" type="javascript/worker">
+        self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
+
+        self.onmessage = function(e) {
+            const arrayBuffer = e.data;
+            try {
+                const key = CryptoJS.lib.WordArray.random(32);
+                const iv = CryptoJS.lib.WordArray.random(16);
+                const wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
+                const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
+                const combined = iv.concat(encrypted.ciphertext);
+
+                const l = combined.sigBytes;
+                const u8_array = new Uint8Array(l);
+                for (let i = 0; i < l; i++) {
+                    u8_array[i] = (combined.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+                }
+                const encryptedBuffer = u8_array.buffer;
+
+                self.postMessage({
+                    encryptedBuffer: encryptedBuffer,
+                    keyHex: key.toString(CryptoJS.enc.Hex)
+                }, [encryptedBuffer]);
+            } catch (error) {
+                self.postMessage({ error: error.message });
+            }
+        };
+    </script>
+
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const app = { client: new WebTorrent(), selectedFile: null, hackerMode: false };
-        const dom = { themeToggle: document.getElementById("theme-toggle"), hackerToggle: document.getElementById("hacker-toggle"), dropZone: document.getElementById("drop-zone"), fileInput: document.getElementById("file-input"), fileNameDisplay: document.getElementById("file-name"), shareButton: document.getElementById("share-button"), scanStatus: document.getElementById("scan-status"), status: document.getElementById("status"), uploader: document.getElementById("uploader"), loader: document.getElementById("loader"), loaderText: document.getElementById("loader-text"), seedingInfo: document.getElementById("seeding-info"), resultFilename: document.getElementById("result-filename"), resultFilesize: document.getElementById("result-filesize"), magnetLink: document.getElementById("magnet-link"), copyButton: document.getElementById("copy-button"), openStreamButton: document.getElementById("open-stream-button"), qrcodeContainer: document.getElementById("qrcode"), historyContainer: document.getElementById("history-container"), welcomeMessage: document.getElementById("welcome-message"), historyTable: document.getElementById("history-table"), historyTableBody: document.querySelector("#history-table tbody"), matrixCanvas: document.getElementById("matrix-canvas"), clickSound: document.getElementById("click-sound") };
-        
-        const indexedDBManager = {
-            db: null,
+        // --- App State & Config ---
+        const app = {
+            client: new WebTorrent(),
+            selectedFile: null,
+            hackerMode: false,
+            maliciousHashes: ['275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f'],
+            allowedFormats: ['mp4', 'mkv', 'webm', 'mp3', 'flac', 'png', 'jpg', 'jpeg', 'pdf', 'txt', 'zip'],
+            blockedFormats: ['exe', 'apk', 'bat', 'scr', 'com', 'jar', 'dmg', 'iso', 'msi'],
+        };
+
+        // --- DOM Elements ---
+        const dom = {
+            themeToggle: document.getElementById('theme-toggle'),
+            hackerToggle: document.getElementById('hacker-toggle'),
+            dropZone: document.getElementById('drop-zone'),
+            fileInput: document.getElementById('file-input'),
+            fileNameDisplay: document.getElementById('file-name'),
+            shareButton: document.getElementById('share-button'),
+            advancedScannerToggle: document.getElementById('advanced-scanner-toggle'),
+            scanStatus: document.getElementById('scan-status'),
+            status: document.getElementById('status'),
+            uploader: document.getElementById('uploader'),
+            loader: document.getElementById('loader'),
+            loaderText: document.getElementById('loader-text'),
+            seedingInfo: document.getElementById('seeding-info'),
+            resultFilename: document.getElementById('result-filename'),
+            resultFilesize: document.getElementById('result-filesize'),
+            magnetLink: document.getElementById('magnet-link'),
+            copyButton: document.getElementById('copy-button'),
+            openStreamButton: document.getElementById('open-stream-button'),
+            qrcodeContainer: document.getElementById('qrcode'),
+            historyContainer: document.getElementById('history-container'),
+            welcomeMessage: document.getElementById('welcome-message'),
+            historyTable: document.getElementById('history-table'),
+            historyTableBody: document.querySelector('#history-table tbody'),
+            matrixCanvas: document.getElementById('matrix-canvas'),
+            clickSound: document.getElementById('click-sound'),
+        };
+
+        // --- UI & THEME ---
+        const ui = {
             init() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open('P2PFileSharerDB', 1);
-                    request.onupgradeneeded = e => { e.target.result.createObjectStore('encryptedFiles', { keyPath: 'id' }); };
-                    request.onsuccess = e => { this.db = e.target.result; resolve(); };
-                    request.onerror = e => reject('IndexedDB error: ' + e.target.errorCode);
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
+                    document.body.classList.add('dark-mode');
+                    dom.themeToggle.checked = true;
+                }
+                const savedHacker = localStorage.getItem('hackerMode');
+                if (savedHacker === 'true') {
+                    app.hackerMode = true;
+                    dom.hackerToggle.checked = true;
+                    this.toggleHackerMode(true, true);
+                }
+
+                dom.themeToggle.addEventListener('change', () => this.toggleTheme());
+                dom.hackerToggle.addEventListener('change', () => this.toggleHackerMode(dom.hackerToggle.checked));
+                
+                dom.dropZone.addEventListener('click', () => dom.fileInput.click());
+                dom.dropZone.addEventListener('dragover', e => { e.preventDefault(); dom.dropZone.classList.add('dragover'); });
+                dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover'));
+                dom.dropZone.addEventListener('drop', e => {
+                    e.preventDefault();
+                    dom.dropZone.classList.remove('dragover');
+                    if (e.dataTransfer.files.length) {
+                        dom.fileInput.files = e.dataTransfer.files;
+                        handleFileSelect({ target: dom.fileInput });
+                    }
                 });
             },
-            addFile(id, blob, originalName) {
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['encryptedFiles'], 'readwrite');
-                    transaction.oncomplete = () => resolve();
-                    transaction.onerror = e => reject('DB Transaction error: ' + e.target.error);
-                    transaction.objectStore('encryptedFiles').put({ id, fileBlob: blob, name: originalName });
-                });
+            toggleTheme() {
+                this.playSound(dom.clickSound);
+                document.body.classList.toggle('dark-mode');
+                localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
             },
-            getFile(id) {
-                return new Promise((resolve, reject) => {
-                    const request = this.db.transaction('encryptedFiles').objectStore('encryptedFiles').get(id);
-                    request.onsuccess = e => resolve(e.target.result);
-                    request.onerror = e => reject('Failed to retrieve file: ' + e.target.error);
-                });
+            toggleHackerMode(enable, silent = false) {
+                if (!silent) this.playSound(dom.clickSound);
+                app.hackerMode = enable;
+                document.body.classList.toggle('hacker-mode', enable);
+                localStorage.setItem('hackerMode', enable);
+                if (enable) matrix.start(); else matrix.stop();
             },
-            deleteFile(id) {
-                return new Promise((resolve, reject) => {
-                    const request = this.db.transaction(['encryptedFiles'], 'readwrite').objectStore('encryptedFiles').delete(id);
-                    request.onsuccess = () => resolve();
-                    request.onerror = e => reject('Failed to delete file: ' + e.target.error);
-                });
+            showLoader(text) {
+                if (dom.loaderText) dom.loaderText.textContent = text;
+                if (dom.loader) dom.loader.style.display = 'flex';
+                if (dom.uploader) dom.uploader.style.display = 'none';
+                if (dom.seedingInfo) dom.seedingInfo.style.display = 'none';
+            },
+            hideLoader() {
+                if (dom.loader) dom.loader.style.display = 'none';
+            },
+            showSeedingInfo(data) {
+                if (dom.resultFilename) dom.resultFilename.textContent = data.filename;
+                if (dom.resultFilesize) dom.resultFilesize.textContent = data.filesize;
+                if (dom.magnetLink) dom.magnetLink.value = data.link;
+                if (dom.openStreamButton) dom.openStreamButton.onclick = () => window.open(data.link, '_blank');
+                
+                if (dom.qrcodeContainer) {
+                    dom.qrcodeContainer.innerHTML = "";
+                    new QRCode(dom.qrcodeContainer, { text: data.link, width: 128, height: 128 });
+                }
+                
+                this.hideLoader();
+                if (dom.seedingInfo) dom.seedingInfo.style.display = 'block';
+            },
+            updateStatus(message, type = 'info') {
+                if (!dom.status) return;
+                dom.status.textContent = message;
+                dom.status.style.color = type === 'error' ? 'var(--danger-color)' : 'var(--text-color)';
+            },
+            updateScanStatus(message, type = 'info') {
+                if (!dom.scanStatus) return;
+                dom.scanStatus.textContent = message;
+                dom.scanStatus.className = type;
+            },
+            playSound(sound) {
+                if (app.hackerMode && sound) {
+                    sound.currentTime = 0;
+                    sound.play().catch(e => console.warn("Audio play failed.", e));
+                }
             }
         };
 
+        // --- Matrix Effect for Hacker Mode ---
+        const matrix = {
+            intervalId: null,
+            start() {
+                const canvas = dom.matrixCanvas; if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}';
+                const fontSize = 14; const columns = canvas.width / fontSize;
+                const drops = Array(Math.floor(columns)).fill(1);
+                function draw() {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#0f0'; ctx.font = `${fontSize}px monospace`;
+                    for (let i = 0; i < drops.length; i++) {
+                        const text = letters[Math.floor(Math.random() * letters.length)];
+                        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                        drops[i]++;
+                    }
+                }
+                this.intervalId = setInterval(draw, 33);
+            },
+            stop() {
+                if (this.intervalId) {
+                    clearInterval(this.intervalId); this.intervalId = null;
+                    const canvas = dom.matrixCanvas; if(canvas){const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);}
+                }
+            }
+        };
+
+        // --- File Handling & Seeding ---
+        dom.fileInput.addEventListener('change', handleFileSelect);
+        dom.shareButton.addEventListener('click', startSeeding);
+        dom.copyButton.addEventListener('click', copyMagnetLink);
+        
+        async function handleFileSelect(event) {
+            ui.playSound(dom.clickSound);
+            app.selectedFile = event.target.files[0];
+            if (!app.selectedFile) return;
+
+            dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
+            ui.updateScanStatus('Scanning file...', 'info');
+            dom.shareButton.disabled = true;
+
+            const isSafe = await fileScanner.scan(app.selectedFile);
+
+            if (isSafe) {
+                ui.updateScanStatus('File seems safe ✔', 'success');
+                dom.shareButton.disabled = false;
+            } else {
+                dom.fileNameDisplay.textContent = '';
+                app.selectedFile = null;
+                dom.fileInput.value = '';
+                dom.shareButton.disabled = true;
+            }
+        }
+
+        async function startSeeding() {
+            if (!app.selectedFile) return;
+            ui.playSound(dom.clickSound);
+            ui.showLoader('Reading file...');
+
+            try {
+                const arrayBuffer = await app.selectedFile.arrayBuffer();
+                
+                ui.showLoader('Encrypting in background... (UI will remain responsive)');
+
+                const workerScript = document.getElementById('encryption-worker').textContent;
+                const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
+                const worker = new Worker(URL.createObjectURL(workerBlob));
+                
+                worker.onmessage = (e) => {
+                    if (e.data.error) { throw new Error(e.data.error); }
+                    
+                    const { encryptedBuffer, keyHex } = e.data;
+                    const encryptedFile = new File([new Blob([encryptedBuffer])], `encrypted.dat`);
+
+                    ui.showLoader('Connecting to P2P network...');
+                    
+                    const trackerOpts = {
+                        announce: [
+                            'wss://tracker.webtorrent.dev',
+                            'wss://tracker.openwebtorrent.com',
+                            'wss://tracker.btorrent.xyz',
+                            'wss://tracker.fastcast.nz'
+                        ]
+                    };
+
+                    app.client.seed(encryptedFile, trackerOpts, (torrent) => {
+                        ui.showLoader('Generating secure link...');
+                        const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
+                        const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(app.selectedFile.name)}`;
+
+                        const data = {
+                            id: Date.now(), filename: app.selectedFile.name,
+                            filesize: formatBytes(app.selectedFile.size), link: shareableLink,
+                            key: keyHex, timestamp: Date.now(),
+                        };
+                        
+                        ui.showSeedingInfo(data);
+                        historyManager.add(data);
+                        ui.updateStatus(`Seeding ${app.selectedFile.name}. Keep this page open.`);
+                        worker.terminate();
+                    });
+                };
+
+                worker.onerror = (err) => { throw err; };
+                worker.postMessage(arrayBuffer, [arrayBuffer]);
+
+            } catch (err) {
+                console.error("Seeding process failed:", err);
+                ui.hideLoader();
+                dom.uploader.style.display = 'block';
+                ui.updateStatus(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        function copyMagnetLink() {
+            ui.playSound(dom.clickSound);
+            navigator.clipboard.writeText(dom.magnetLink.value).then(() => {
+                dom.copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => dom.copyButton.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
+            });
+        }
+
+        // --- File Scanner ---
+        const fileScanner = {
+            async scan(file) {
+                const extension = file.name.split('.').pop().toLowerCase();
+                if (app.blockedFormats.includes(extension)) { ui.updateScanStatus(`Error: File format ".${extension}" is disallowed.`, 'danger'); return false; }
+                if (!app.allowedFormats.includes(extension)) { ui.updateScanStatus(`Warning: Format ".${extension}" is not recommended.`, 'warning'); }
+                if (/\.(pdf|jpg|png|mp4|txt)\.exe$/.test(file.name.toLowerCase())) { ui.updateScanStatus(`Error: Suspicious double extension detected!`, 'danger'); return false; }
+
+                if (dom.advancedScannerToggle.checked) {
+                    ui.showLoader('Performing advanced scan...');
+                    try {
+                        const hash = await this.calculateHash(file);
+                        if (app.maliciousHashes.includes(hash)) { ui.updateScanStatus('Error: File matches a known malicious signature!', 'danger'); return false; }
+                        const entropy = await this.calculateEntropy(file);
+                        if (entropy > 7.6) { ui.updateScanStatus(`Warning: File has high entropy (${entropy.toFixed(2)}).`, 'warning'); }
+                    } catch (err) { ui.updateScanStatus('Advanced scan could not be completed.', 'warning'); } 
+                    finally { ui.hideLoader(); dom.uploader.style.display = 'block'; }
+                }
+                return true;
+            },
+            async calculateHash(file) {
+                const buffer = await file.arrayBuffer(); const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+            },
+            async calculateEntropy(file) {
+                const buffer = await file.arrayBuffer(); const bytes = new Uint8Array(buffer); const map = {};
+                for (const byte of bytes) { map[byte] = (map[byte] || 0) + 1; }
+                let entropy = 0; const len = bytes.length; if(len === 0) return 0;
+                for (const p of Object.values(map)) { const freq = p / len; entropy -= freq * Math.log2(freq); }
+                return entropy;
+            }
+        };
+
+        // --- History Manager ---
         const historyManager = {
             key: 'webtorrent-history',
             load() {
@@ -174,10 +717,9 @@
                 const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
                 history = history.filter(item => item.timestamp > thirtyDaysAgo);
                 localStorage.setItem(this.key, JSON.stringify(history));
-
-                dom.historyTableBody.innerHTML = '';
                 if (history.length > 0) {
                     dom.welcomeMessage.style.display = 'none'; dom.historyTable.style.display = 'table';
+                    dom.historyTableBody.innerHTML = '';
                     history.sort((a,b) => b.timestamp - a.timestamp).forEach(item => this.renderRow(item));
                 } else { dom.welcomeMessage.style.display = 'block'; dom.historyTable.style.display = 'none'; }
             },
@@ -186,133 +728,32 @@
                 history.push(item); localStorage.setItem(this.key, JSON.stringify(history)); this.load();
             },
             delete(id) {
-                let history = JSON.parse(localStorage.getItem(this.key)) || [];
-                const itemToDelete = history.find(item => item.id === id);
-                if (itemToDelete && itemToDelete.dbId) {
-                    indexedDBManager.deleteFile(itemToDelete.dbId).catch(console.error);
-                }
-                history = history.filter(item => item.id !== id);
-                localStorage.setItem(this.key, JSON.stringify(history)); this.load();
+                ui.playSound(dom.clickSound); let history = JSON.parse(localStorage.getItem(this.key)) || [];
+                history = history.filter(item => item.id !== id); localStorage.setItem(this.key, JSON.stringify(history)); this.load();
             },
             renderRow(item) {
-                const row = document.createElement('tr');
-                const isSeeding = app.client.torrents.some(t => t.infoHash === item.infoHash);
-                row.innerHTML = `
-                    <td><i class="${getFileIconClass(item.filename.split('.').pop())} file-icon"></i></td>
-                    <td>${escapeHTML(item.filename)}<br><small>${item.filesize}</small></td>
-                    <td class="seeding-status">${isSeeding ? '<span class="seeding-indicator">ACTIVE</span>' : 'Inactive'}</td>
-                    <td class="history-actions">
-                        <button class="btn-reseed" data-db-id="${item.dbId}" ${isSeeding ? 'disabled' : ''}><i class="fas fa-play"></i> Re-seed</button>
-                        <button class="btn-delete-history btn-danger" data-id="${item.id}"><i class="fas fa-trash"></i></button>
-                    </td>
-                `;
+                const row = document.createElement('tr'); const fileExt = item.filename.split('.').pop();
+                row.innerHTML = `<td><i class="${getFileIconClass(fileExt)} file-icon"></i></td><td>${escapeHTML(item.filename)}</td><td>${item.filesize}</td><td>${new Date(item.timestamp).toLocaleString()}</td>
+                    <td class="history-actions"><button class="btn-copy-magnet"><i class="fas fa-copy"></i> Copy</button><button class="btn-open-stream"><i class="fas fa-external-link-alt"></i> Open</button><button class="btn-delete-history btn-danger"><i class="fas fa-trash"></i></button></td>`;
                 dom.historyTableBody.appendChild(row);
-                row.querySelector('.btn-delete-history').addEventListener('click', () => { ui.playSound(dom.clickSound); this.delete(item.id); });
-                row.querySelector('.btn-reseed').addEventListener('click', (e) => {
-                    ui.playSound(dom.clickSound); reseedFile(e.currentTarget.dataset.dbId);
+                row.querySelector('.btn-delete-history').addEventListener('click', () => this.delete(item.id));
+                row.querySelector('.btn-open-stream').addEventListener('click', () => window.open(item.link, '_blank'));
+                row.querySelector('.btn-copy-magnet').addEventListener('click', (e) => {
+                    const btn = e.currentTarget; navigator.clipboard.writeText(item.link).then(() => {
+                        btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
+                    });
                 });
             }
         };
 
-        const ui = {
-            playSound(sound) { if (app.hackerMode && sound) { sound.currentTime=0; sound.play().catch(e => {}); } },
-            showLoader(text) { dom.loaderText.textContent = text; dom.loader.style.display = 'flex'; dom.uploader.style.display = 'none'; dom.seedingInfo.style.display = 'none'; },
-            hideLoader() { dom.loader.style.display = 'none'; },
-            showSeedingInfo(data) { dom.resultFilename.textContent = data.filename; dom.resultFilesize.textContent = data.filesize; dom.magnetLink.value = data.link; dom.openStreamButton.onclick = () => window.open(data.link, '_blank'); dom.qrcodeContainer.innerHTML = ""; new QRCode(dom.qrcodeContainer, { text: data.link, width: 128, height: 128 }); this.hideLoader(); dom.seedingInfo.style.display = 'block'; },
-            updateStatus(msg, type = 'info') { dom.status.textContent = msg; dom.status.style.color = type === 'error' ? 'var(--danger-color)' : 'var(--text-color)'; },
-            // ... other UI methods for themes, etc ...
-        };
-        
-        async function startSeeding(fileToSeed) {
-            ui.playSound(dom.clickSound);
-            ui.showLoader('Reading file...');
-            try {
-                const arrayBuffer = await fileToSeed.arrayBuffer();
-                ui.showLoader('Encrypting file (this is non-blocking)...');
-                const worker = new Worker(URL.createObjectURL(new Blob([document.getElementById('encryption-worker').textContent])));
-                worker.onmessage = async (e) => {
-                    worker.terminate();
-                    if (e.data.error) throw new Error(e.data.error);
-                    const { encryptedBuffer, keyHex } = e.data;
-                    const encryptedBlob = new Blob([encryptedBuffer]);
-                    
-                    const dbId = `file_${Date.now()}`;
-                    ui.showLoader('Saving to local browser storage for re-seeding...');
-                    await indexedDBManager.addFile(dbId, encryptedBlob, fileToSeed.name);
+        // --- Utility Functions ---
+        function formatBytes(bytes, d=2){if(!+bytes)return'0 Bytes';const k=1024,i=Math.floor(Math.log(bytes)/Math.log(k));return`${parseFloat((bytes/Math.pow(k,i)).toFixed(d))} ${['Bytes','KB','MB','GB','TB'][i]}`}
+        function getFileIconClass(ext){const i={'mp4':'fas fa-file-video','webm':'fas fa-file-video','mkv':'fas fa-file-video','mp3':'fas fa-file-audio','flac':'fas fa-file-audio','png':'fas fa-file-image','jpg':'fas fa-file-image','jpeg':'fas fa-file-image','pdf':'fas fa-file-pdf','zip':'fas fa-file-archive','txt':'fas fa-file-alt'};return i[ext.toLowerCase()]||'fas fa-file'}
+        function escapeHTML(str){return str.replace(/[&<>'"]/g,t=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t))}
 
-                    const encryptedFile = new File([encryptedBlob], `encrypted.dat`);
-                    seedEncryptedFile(encryptedFile, fileToSeed.name, fileToSeed.size, keyHex, dbId);
-                };
-                worker.onerror = (err) => { throw err; };
-                worker.postMessage(arrayBuffer, [arrayBuffer]);
-            } catch (err) { ui.hideLoader(); dom.uploader.style.display = 'block'; ui.updateStatus(`Error: ${err.message}`, 'error'); }
-        }
-
-        async function reseedFile(dbId) {
-            ui.showLoader('Retrieving file from local storage...');
-            try {
-                const fileData = await indexedDBManager.getFile(dbId);
-                if (!fileData) throw new Error("File not found in local storage. It may have been cleared.");
-                const history = JSON.parse(localStorage.getItem(historyManager.key)) || [];
-                const historyItem = history.find(item => item.dbId === dbId);
-                if (!historyItem) throw new Error("Could not find matching history entry for this file.");
-                const encryptedFile = new File([fileData.fileBlob], `encrypted.dat`);
-                seedEncryptedFile(encryptedFile, fileData.name, fileData.fileBlob.size, historyItem.key, dbId, true);
-            } catch (err) { ui.hideLoader(); dom.uploader.style.display = 'block'; ui.updateStatus(`Error re-seeding: ${err.message}`, 'error'); }
-        }
-
-        function seedEncryptedFile(encryptedFile, originalName, originalSize, keyHex, dbId, isReseed = false) {
-            ui.showLoader(isReseed ? 'Re-connecting to P2P network...' : 'Connecting to P2P network...');
-            const trackerOpts = { announce: ['wss://tracker.webtorrent.dev', 'wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz', 'wss://tracker.fastcast.nz'] };
-            app.client.seed(encryptedFile, trackerOpts, (torrent) => {
-                const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
-                const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(originalName)}`;
-                
-                if (isReseed) {
-                    let history = JSON.parse(localStorage.getItem(historyManager.key)) || [];
-                    let item = history.find(i => i.dbId === dbId);
-                    if (item) item.infoHash = torrent.infoHash; // Update infoHash
-                    localStorage.setItem(historyManager.key, JSON.stringify(history));
-                } else {
-                    historyManager.add({
-                        id: Date.now(), dbId: dbId, filename: originalName, filesize: formatBytes(originalSize),
-                        link: shareableLink, key: keyHex, timestamp: Date.now(), infoHash: torrent.infoHash
-                    });
-                }
-                
-                ui.showSeedingInfo({ filename: originalName, filesize: formatBytes(originalSize), link: shareableLink });
-                historyManager.load();
-                ui.updateStatus(`Seeding ${originalName}. Keep this tab open.`);
-            });
-        }
-        
-        function handleFileSelect(event) {
-            app.selectedFile = event.target.files[0];
-            if (app.selectedFile) {
-                dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
-                dom.shareButton.disabled = false;
-                dom.scanStatus.textContent = '';
-            }
-        }
-
-        function formatBytes(b, d=2) { if(!+b) return "0 Bytes"; const k=1024, s=["Bytes","KB","MB","GB","TB"], i=Math.floor(Math.log(b)/Math.log(k)); return `${parseFloat((b/Math.pow(k,i)).toFixed(d))} ${s[i]}`; }
-        function getFileIconClass(e) { const t={mp4:"fas fa-file-video",webm:"fas fa-file-video",mkv:"fas fa-file-video",mp3:"fas fa-file-audio",flac:"fas fa-file-audio",png:"fas fa-file-image",jpg:"fas fa-file-image",jpeg:"fas fa-file-image",pdf:"fas fa-file-pdf",zip:"fas fa-file-archive",txt:"fas fa-file-alt"}; return t[e.toLowerCase()]||"fas fa-file"; }
-        function escapeHTML(e) { return e.replace(/[&<>'"]/g, e => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[e]||e); }
-        
-        dom.shareButton.addEventListener('click', () => { if(app.selectedFile) startSeeding(app.selectedFile) });
-        dom.fileInput.addEventListener('change', handleFileSelect);
-        dom.dropZone.addEventListener('click', () => dom.fileInput.click());
-        dom.dropZone.addEventListener('dragover', e => { e.preventDefault(); dom.dropZone.classList.add('dragover'); });
-        dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover'));
-        dom.dropZone.addEventListener('drop', e => { e.preventDefault(); dom.dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) { dom.fileInput.files = e.dataTransfer.files; handleFileSelect({ target: dom.fileInput }); } });
-        dom.copyButton.addEventListener('click', () => { navigator.clipboard.writeText(dom.magnetLink.value); dom.copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!'; setTimeout(()=>dom.copyButton.innerHTML='<i class="fas fa-copy"></i> Copy', 2000)});
-        
-        indexedDBManager.init().then(() => {
-            historyManager.load();
-        }).catch(err => {
-            console.error(err);
-            dom.historyContainer.innerHTML = "<p style='color: var(--danger-color);'>Could not initialize local database. Re-seeding will be disabled.</p>";
-        });
+        // --- App Initialization ---
+        ui.init();
+        historyManager.load();
     });
     </script>
 </body>
