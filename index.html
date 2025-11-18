@@ -4,14 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P2P Secure WebTorrent File Sharer</title>
+    
+    <!-- CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+
     <style>
-        /* CSS is identical to previous version, with minor additions for new buttons */
-        :root{--font-main:'Segoe UI',Roboto,'Helvetica Neue',sans-serif;--font-hacker:'Courier New',Courier,monospace}:root,:root.light-mode{--bg-color:#f0f2f5;--text-color:#333;--header-color:#4a4a4a;--card-bg:rgba(255,255,255,0.6);--card-border:rgba(255,255,255,0.8);--neon-border-color:#007bff;--accent-color:#007bff;--accent-hover:#0056b3;--success-color:#28a745;--danger-color:#dc3545;--warning-color:#ffc107;--input-bg:rgba(255,255,255,0.7);--input-border:#ccc}:root.dark-mode{--bg-color:#1a1a1a;--text-color:#e0e0e0;--header-color:#f5f5f5;--card-bg:rgba(10,10,10,0.5);--card-border:rgba(255,255,255,0.1);--neon-border-color:#00e5ff;--accent-color:#00e5ff;--accent-hover:#00b8d4;--success-color:#00e676;--danger-color:#ff5252;--warning-color:#ffd740;--input-bg:rgba(40,40,40,0.7);--input-border:#444}:root.hacker-mode{--bg-color:#000;--text-color:#0f0;--header-color:#0f0;--card-bg:rgba(0,20,0,0.6);--card-border:rgba(0,255,0,0.3);--neon-border-color:#0f0;--accent-color:#0f0;--accent-hover:#3f3;--success-color:#0f0;--danger-color:#f00;--warning-color:#ff0;--input-bg:rgba(0,15,0,0.8);--input-border:#0f0}body{font-family:var(--font-main);background-color:var(--bg-color);color:var(--text-color);margin:0;padding:20px;transition:background-color .3s,color .3s;overflow-x:hidden}body.hacker-mode{font-family:var(--font-hacker)}#matrix-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;display:none}body.hacker-mode #matrix-canvas{display:block}.container{max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:20px}.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:15px;padding:25px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 32px 0 rgba(0,0,0,.1);transition:all .3s ease;position:relative;overflow:hidden}.card::before{content:'';position:absolute;top:0;right:0;bottom:0;left:0;border-radius:15px;border:2px solid transparent;pointer-events:none;animation:neon-glow 3s infinite alternate;z-index:-1}@keyframes neon-glow{from{border-color:transparent}to{border-color:var(--neon-border-color);box-shadow:0 0 10px var(--neon-border-color),0 0 20px var(--neon-border-color)}}header{text-align:center;margin-bottom:10px}.animated-header{font-size:2.5em;font-weight:700;color:var(--header-color);animation:color-cycle 10s infinite}@keyframes color-cycle{0%{color:var(--header-color)}50%{color:var(--accent-color)}100%{color:var(--header-color)}}.controls{display:flex;justify-content:flex-end;gap:15px;margin-bottom:20px}.toggle-switch{display:flex;align-items:center;gap:8px;cursor:pointer}.toggle-switch input{display:none}.slider{position:relative;width:40px;height:20px;background-color:#ccc;border-radius:20px;transition:.3s}.slider:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background-color:#fff;border-radius:50%;transition:.3s}input:checked+.slider{background-color:var(--accent-color)}input:checked+.slider:before{transform:translateX(20px)}#uploader{text-align:center}#drop-zone{border:2px dashed var(--input-border);border-radius:10px;padding:40px 20px;cursor:pointer;transition:border-color .3s,background-color .3s}#drop-zone.dragover{border-color:var(--accent-color);background-color:rgba(0,123,255,.1)}#file-input{display:none}.advanced-scanner{margin-top:15px;display:flex;justify-content:center;align-items:center}#status,#scan-status{margin-top:15px;font-weight:700;min-height:24px}#scan-status.danger{color:var(--danger-color)}#scan-status.warning{color:var(--warning-color)}#scan-status.success{color:var(--success-color)}button{background-color:var(--accent-color);color:#fff;border:none;padding:10px 20px;border-radius:5px;cursor:pointer;font-weight:700;transition:background-color .3s}button:hover{background-color:var(--accent-hover)}button:disabled{background-color:#6c757d;cursor:not-allowed}.btn-danger{background-color:var(--danger-color)}#seeding-info{display:none}.result-box{display:flex;align-items:center;margin-top:15px;background-color:var(--input-bg);border:1px solid var(--input-border);border-radius:5px;padding:10px}.result-box input{flex-grow:1;border:none;background:0 0;color:var(--text-color);font-family:inherit}.result-box button{border-radius:0 5px 5px 0;margin-left:-5px}#qrcode{margin:20px auto;padding:10px;background:#fff;border-radius:5px;width:138px;height:138px}#history table{width:100%;border-collapse:collapse;margin-top:10px}#history th,#history td{padding:12px;text-align:left;border-bottom:1px solid var(--card-border)}.history-actions button{padding:5px 10px;margin-right:5px;font-size:.9em}.file-icon{font-size:1.5em}.loader-container{display:none;justify-content:center;align-items:center;flex-direction:column;gap:10px}.loader{border:5px solid #f3f3f3;border-top:5px solid var(--accent-color);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}@media (max-width:600px){body{padding:10px}.result-box{flex-direction:column;gap:10px}.result-box input{width:100%}.result-box button{width:100%;border-radius:5px;margin-left:0}.history-actions{display:flex;flex-direction:column;gap:5px}}
-        .seeding-indicator { color: var(--success-color); font-weight: bold; }
+        /* --- CORE STYLES & THEMES --- */
+        :root {
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            --font-hacker: 'Courier New', Courier, monospace;
+        }
+        :root, :root.light-mode {
+            --bg-color: #f0f2f5; --text-color: #333; --header-color: #4a4a4a;
+            --card-bg: rgba(255, 255, 255, 0.6); --card-border: rgba(255, 255, 255, 0.8);
+            --neon-border-color: #007bff; --accent-color: #007bff; --accent-hover: #0056b3;
+            --success-color: #28a745; --danger-color: #dc3545; --warning-color: #ffc107;
+            --input-bg: rgba(255, 255, 255, 0.7); --input-border: #ccc;
+        }
+        :root.dark-mode {
+            --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #f5f5f5;
+            --card-bg: rgba(10, 10, 10, 0.5); --card-border: rgba(255, 255, 255, 0.1);
+            --neon-border-color: #00e5ff; --accent-color: #00e5ff; --accent-hover: #00b8d4;
+            --success-color: #00e676; --danger-color: #ff5252; --warning-color: #ffd740;
+            --input-bg: rgba(40, 40, 40, 0.7); --input-border: #444;
+        }
+        :root.hacker-mode {
+            --bg-color: #000; --text-color: #0f0; --header-color: #0f0;
+            --card-bg: rgba(0, 20, 0, 0.6); --card-border: rgba(0, 255, 0, 0.3);
+            --neon-border-color: #0f0; --accent-color: #0f0; --accent-hover: #3f3;
+            --success-color: #0f0; --danger-color: #f00; --warning-color: #ff0;
+            --input-bg: rgba(0, 15, 0, 0.8); --input-border: #0f0;
+        }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; transition: background-color .3s,color .3s; overflow-x: hidden; }
+        body.hacker-mode { font-family: var(--font-hacker); }
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; display: none; }
+        body.hacker-mode #matrix-canvas { display: block; }
+        .container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 15px; padding: 25px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 8px 32px 0 rgba(0,0,0,.1); transition: all .3s ease; position: relative; overflow: hidden; }
+        .card::before { content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: 15px; border: 2px solid transparent; pointer-events: none; animation: neon-glow 3s infinite alternate; z-index: -1; }
+        @keyframes neon-glow { from { border-color: transparent; } to { border-color: var(--neon-border-color); box-shadow: 0 0 10px var(--neon-border-color), 0 0 20px var(--neon-border-color); } }
+        header { text-align: center; margin-bottom: 10px; }
+        .animated-header { font-size: 2.5em; font-weight: 700; color: var(--header-color); animation: color-cycle 10s infinite; }
+        @keyframes color-cycle { 0% { color: var(--header-color); } 50% { color: var(--accent-color); } 100% { color: var(--header-color); } }
+        .controls { display: flex; justify-content: flex-end; gap: 15px; margin-bottom: 20px; }
+        .toggle-switch { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .toggle-switch input { display: none; }
+        .slider { position: relative; width: 40px; height: 20px; background-color: #ccc; border-radius: 20px; transition: .3s; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #fff; border-radius: 50%; transition: .3s; }
+        input:checked + .slider { background-color: var(--accent-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        #uploader { text-align: center; }
+        #drop-zone { border: 2px dashed var(--input-border); border-radius: 10px; padding: 40px 20px; cursor: pointer; transition: border-color .3s, background-color .3s; }
+        #drop-zone.dragover { border-color: var(--accent-color); background-color: rgba(0, 123, 255, .1); }
+        #file-input { display: none; }
+        #status, #scan-status { margin-top: 15px; font-weight: 700; min-height: 24px; }
+        #scan-status.danger { color: var(--danger-color); }
+        #scan-status.warning { color: var(--warning-color); }
+        #scan-status.success { color: var(--success-color); }
+        button { background-color: var(--accent-color); color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: 700; transition: background-color .3s; }
+        button:hover { background-color: var(--accent-hover); }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .btn-danger { background-color: var(--danger-color); }
+        #seeding-info { display: none; }
+        .result-box { display: flex; align-items: center; margin-top: 15px; background-color: var(--input-bg); border: 1px solid var(--input-border); border-radius: 5px; padding: 10px; }
+        .result-box input { flex-grow: 1; border: none; background: 0 0; color: var(--text-color); font-family: inherit; }
+        .result-box button { border-radius: 0 5px 5px 0; margin-left: -5px; }
+        #qrcode { margin: 20px auto; padding: 10px; background: #fff; border-radius: 5px; width: 138px; height: 138px; }
+        #history table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        #history th, #history td { padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); }
+        .history-actions button { padding: 5px 10px; margin: 2px; font-size: .9em; }
+        .file-icon { font-size: 1.5em; }
+        .loader-container { display: none; justify-content: center; align-items: center; flex-direction: column; gap: 10px; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--accent-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .seeding-indicator { color: var(--success-color); font-weight: bold; font-size: 0.9em; }
+        @media (max-width: 600px) { body { padding: 10px; } .result-box { flex-direction: column; gap: 10px; } .result-box input { width: 100%; } .result-box button { width: 100%; border-radius: 5px; margin-left: 0; } .history-actions { display: flex; flex-direction: column; gap: 5px; align-items: flex-start;} }
     </style>
 </head>
 <body>
@@ -29,7 +99,8 @@
             <h2>1. Select a File to Share</h2>
             <div id="uploader">
                 <div id="drop-zone"><p>Drag & Drop a file here, or click to select</p><p id="file-name"></p><input type="file" id="file-input"></div>
-                <div id="scan-status"></div><button id="share-button" disabled>Create Secure Link</button>
+                <div id="scan-status"></div>
+                <button id="share-button" disabled>Create Secure Link</button>
             </div>
             <div id="status"></div>
             <div class="loader-container" id="loader"><div class="loader"></div><p id="loader-text">...</p></div>
@@ -60,55 +131,38 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const app = { client: new WebTorrent(), selectedFile: null, hackerMode: false };
-        const dom = { /* All DOM element references */ themeToggle:document.getElementById("theme-toggle"),hackerToggle:document.getElementById("hacker-toggle"),dropZone:document.getElementById("drop-zone"),fileInput:document.getElementById("file-input"),fileNameDisplay:document.getElementById("file-name"),shareButton:document.getElementById("share-button"),scanStatus:document.getElementById("scan-status"),status:document.getElementById("status"),uploader:document.getElementById("uploader"),loader:document.getElementById("loader"),loaderText:document.getElementById("loader-text"),seedingInfo:document.getElementById("seeding-info"),resultFilename:document.getElementById("result-filename"),resultFilesize:document.getElementById("result-filesize"),magnetLink:document.getElementById("magnet-link"),copyButton:document.getElementById("copy-button"),openStreamButton:document.getElementById("open-stream-button"),qrcodeContainer:document.getElementById("qrcode"),historyContainer:document.getElementById("history-container"),welcomeMessage:document.getElementById("welcome-message"),historyTable:document.getElementById("history-table"),historyTableBody:document.querySelector("#history-table tbody"),matrixCanvas:document.getElementById("matrix-canvas"),clickSound:document.getElementById("click-sound")};
+        const dom = { themeToggle: document.getElementById("theme-toggle"), hackerToggle: document.getElementById("hacker-toggle"), dropZone: document.getElementById("drop-zone"), fileInput: document.getElementById("file-input"), fileNameDisplay: document.getElementById("file-name"), shareButton: document.getElementById("share-button"), scanStatus: document.getElementById("scan-status"), status: document.getElementById("status"), uploader: document.getElementById("uploader"), loader: document.getElementById("loader"), loaderText: document.getElementById("loader-text"), seedingInfo: document.getElementById("seeding-info"), resultFilename: document.getElementById("result-filename"), resultFilesize: document.getElementById("result-filesize"), magnetLink: document.getElementById("magnet-link"), copyButton: document.getElementById("copy-button"), openStreamButton: document.getElementById("open-stream-button"), qrcodeContainer: document.getElementById("qrcode"), historyContainer: document.getElementById("history-container"), welcomeMessage: document.getElementById("welcome-message"), historyTable: document.getElementById("history-table"), historyTableBody: document.querySelector("#history-table tbody"), matrixCanvas: document.getElementById("matrix-canvas"), clickSound: document.getElementById("click-sound") };
         
-        // --- IndexedDB Manager for File Persistence ---
         const indexedDBManager = {
             db: null,
             init() {
                 return new Promise((resolve, reject) => {
                     const request = indexedDB.open('P2PFileSharerDB', 1);
-                    request.onupgradeneeded = event => {
-                        const db = event.target.result;
-                        if (!db.objectStoreNames.contains('encryptedFiles')) {
-                            db.createObjectStore('encryptedFiles', { keyPath: 'id' });
-                        }
-                    };
-                    request.onsuccess = event => {
-                        this.db = event.target.result;
-                        resolve();
-                    };
-                    request.onerror = event => reject('IndexedDB error: ' + event.target.errorCode);
+                    request.onupgradeneeded = e => { e.target.result.createObjectStore('encryptedFiles', { keyPath: 'id' }); };
+                    request.onsuccess = e => { this.db = e.target.result; resolve(); };
+                    request.onerror = e => reject('IndexedDB error: ' + e.target.errorCode);
                 });
             },
             addFile(id, blob, originalName) {
                 return new Promise((resolve, reject) => {
-                    if (!this.db) return reject("DB not initialized.");
                     const transaction = this.db.transaction(['encryptedFiles'], 'readwrite');
-                    const store = transaction.objectStore('encryptedFiles');
-                    const request = store.put({ id: id, fileBlob: blob, name: originalName });
-                    request.onsuccess = () => resolve();
-                    request.onerror = event => reject('Failed to save file to IndexedDB: ' + event.target.error);
+                    transaction.oncomplete = () => resolve();
+                    transaction.onerror = e => reject('DB Transaction error: ' + e.target.error);
+                    transaction.objectStore('encryptedFiles').put({ id, fileBlob: blob, name: originalName });
                 });
             },
             getFile(id) {
                 return new Promise((resolve, reject) => {
-                    if (!this.db) return reject("DB not initialized.");
-                    const transaction = this.db.transaction(['encryptedFiles'], 'readonly');
-                    const store = transaction.objectStore('encryptedFiles');
-                    const request = store.get(id);
-                    request.onsuccess = event => resolve(event.target.result);
-                    request.onerror = event => reject('Failed to retrieve file from IndexedDB: ' + event.target.error);
+                    const request = this.db.transaction('encryptedFiles').objectStore('encryptedFiles').get(id);
+                    request.onsuccess = e => resolve(e.target.result);
+                    request.onerror = e => reject('Failed to retrieve file: ' + e.target.error);
                 });
             },
             deleteFile(id) {
                 return new Promise((resolve, reject) => {
-                    if (!this.db) return reject("DB not initialized.");
-                    const transaction = this.db.transaction(['encryptedFiles'], 'readwrite');
-                    const store = transaction.objectStore('encryptedFiles');
-                    const request = store.delete(id);
+                    const request = this.db.transaction(['encryptedFiles'], 'readwrite').objectStore('encryptedFiles').delete(id);
                     request.onsuccess = () => resolve();
-                    request.onerror = event => reject('Failed to delete file from IndexedDB: ' + event.target.error);
+                    request.onerror = e => reject('Failed to delete file: ' + e.target.error);
                 });
             }
         };
@@ -117,7 +171,10 @@
             key: 'webtorrent-history',
             load() {
                 let history = JSON.parse(localStorage.getItem(this.key)) || [];
-                // ... filtering old entries ...
+                const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+                history = history.filter(item => item.timestamp > thirtyDaysAgo);
+                localStorage.setItem(this.key, JSON.stringify(history));
+
                 dom.historyTableBody.innerHTML = '';
                 if (history.length > 0) {
                     dom.welcomeMessage.style.display = 'none'; dom.historyTable.style.display = 'table';
@@ -150,47 +207,41 @@
                     </td>
                 `;
                 dom.historyTableBody.appendChild(row);
-                row.querySelector('.btn-delete-history').addEventListener('click', () => this.delete(item.id));
+                row.querySelector('.btn-delete-history').addEventListener('click', () => { ui.playSound(dom.clickSound); this.delete(item.id); });
                 row.querySelector('.btn-reseed').addEventListener('click', (e) => {
-                    reseedFile(e.currentTarget.dataset.dbId);
+                    ui.playSound(dom.clickSound); reseedFile(e.currentTarget.dataset.dbId);
                 });
             }
         };
 
-        const ui = { /* UI methods like showLoader, hideLoader, etc. */ playSound(s){if(app.hackerMode&&s)s.play().catch(e=>{})},showLoader(t){dom.loaderText.textContent=t;dom.loader.style.display="flex";dom.uploader.style.display="none";dom.seedingInfo.style.display="none"},hideLoader(){dom.loader.style.display="none"},showSeedingInfo(t){dom.resultFilename.textContent=t.filename;dom.resultFilesize.textContent=t.filesize;dom.magnetLink.value=t.link;dom.openStreamButton.onclick=()=>window.open(t.link,"_blank");dom.qrcodeContainer.innerHTML="";new QRCode(dom.qrcodeContainer,{text:t.link,width:128,height:128});this.hideLoader();dom.seedingInfo.style.display="block"},updateStatus(t,e="info"){dom.status.textContent=t;dom.status.style.color="error"===e?"var(--danger-color)":"var(--text-color)"}};
+        const ui = {
+            playSound(sound) { if (app.hackerMode && sound) { sound.currentTime=0; sound.play().catch(e => {}); } },
+            showLoader(text) { dom.loaderText.textContent = text; dom.loader.style.display = 'flex'; dom.uploader.style.display = 'none'; dom.seedingInfo.style.display = 'none'; },
+            hideLoader() { dom.loader.style.display = 'none'; },
+            showSeedingInfo(data) { dom.resultFilename.textContent = data.filename; dom.resultFilesize.textContent = data.filesize; dom.magnetLink.value = data.link; dom.openStreamButton.onclick = () => window.open(data.link, '_blank'); dom.qrcodeContainer.innerHTML = ""; new QRCode(dom.qrcodeContainer, { text: data.link, width: 128, height: 128 }); this.hideLoader(); dom.seedingInfo.style.display = 'block'; },
+            updateStatus(msg, type = 'info') { dom.status.textContent = msg; dom.status.style.color = type === 'error' ? 'var(--danger-color)' : 'var(--text-color)'; },
+            // ... other UI methods for themes, etc ...
+        };
         
         async function startSeeding(fileToSeed) {
             ui.playSound(dom.clickSound);
             ui.showLoader('Reading file...');
             try {
                 const arrayBuffer = await fileToSeed.arrayBuffer();
-                ui.showLoader('Encrypting file...');
+                ui.showLoader('Encrypting file (this is non-blocking)...');
                 const worker = new Worker(URL.createObjectURL(new Blob([document.getElementById('encryption-worker').textContent])));
                 worker.onmessage = async (e) => {
                     worker.terminate();
                     if (e.data.error) throw new Error(e.data.error);
                     const { encryptedBuffer, keyHex } = e.data;
                     const encryptedBlob = new Blob([encryptedBuffer]);
-                    const encryptedFile = new File([encryptedBlob], `encrypted.dat`);
                     
                     const dbId = `file_${Date.now()}`;
                     ui.showLoader('Saving to local browser storage for re-seeding...');
                     await indexedDBManager.addFile(dbId, encryptedBlob, fileToSeed.name);
 
-                    ui.showLoader('Connecting to P2P network...');
-                    const trackerOpts = { announce: ['wss://tracker.webtorrent.dev', 'wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz', 'wss://tracker.fastcast.nz'] };
-                    app.client.seed(encryptedFile, trackerOpts, (torrent) => {
-                        const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
-                        const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(fileToSeed.name)}`;
-                        const data = {
-                            id: Date.now(), dbId: dbId, filename: fileToSeed.name,
-                            filesize: formatBytes(fileToSeed.size), link: shareableLink, key: keyHex,
-                            timestamp: Date.now(), infoHash: torrent.infoHash
-                        };
-                        ui.showSeedingInfo(data);
-                        historyManager.add(data);
-                        ui.updateStatus(`Seeding ${fileToSeed.name}.`);
-                    });
+                    const encryptedFile = new File([encryptedBlob], `encrypted.dat`);
+                    seedEncryptedFile(encryptedFile, fileToSeed.name, fileToSeed.size, keyHex, dbId);
                 };
                 worker.onerror = (err) => { throw err; };
                 worker.postMessage(arrayBuffer, [arrayBuffer]);
@@ -202,55 +253,59 @@
             try {
                 const fileData = await indexedDBManager.getFile(dbId);
                 if (!fileData) throw new Error("File not found in local storage. It may have been cleared.");
-                
-                const encryptedFile = new File([fileData.fileBlob], `encrypted.dat`);
-                ui.showLoader('Connecting to P2P network to re-seed...');
-                const trackerOpts = { announce: ['wss://tracker.webtorrent.dev', 'wss://tracker.openwebtorrent.com'] };
-
-                // We need the original key. Let's find it in history.
                 const history = JSON.parse(localStorage.getItem(historyManager.key)) || [];
                 const historyItem = history.find(item => item.dbId === dbId);
                 if (!historyItem) throw new Error("Could not find matching history entry for this file.");
-                const keyHex = historyItem.key;
-
-                app.client.seed(encryptedFile, trackerOpts, (torrent) => {
-                    historyItem.infoHash = torrent.infoHash; // Update infoHash in case it changes
-                    localStorage.setItem(historyManager.key, JSON.stringify(history));
-
-                    const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
-                    const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(fileData.name)}`;
-                    
-                    const displayData = {
-                        filename: fileData.name,
-                        filesize: formatBytes(encryptedFile.size), // Size might be slightly different
-                        link: shareableLink
-                    };
-                    ui.showSeedingInfo(displayData);
-                    historyManager.load(); // Refresh history to show active status
-                    ui.updateStatus(`Successfully re-seeding ${fileData.name}.`);
-                });
-            } catch (err) {
-                ui.hideLoader();
-                dom.uploader.style.display = 'block';
-                ui.updateStatus(`Error re-seeding: ${err.message}`, 'error');
-            }
+                const encryptedFile = new File([fileData.fileBlob], `encrypted.dat`);
+                seedEncryptedFile(encryptedFile, fileData.name, fileData.fileBlob.size, historyItem.key, dbId, true);
+            } catch (err) { ui.hideLoader(); dom.uploader.style.display = 'block'; ui.updateStatus(`Error re-seeding: ${err.message}`, 'error'); }
         }
 
+        function seedEncryptedFile(encryptedFile, originalName, originalSize, keyHex, dbId, isReseed = false) {
+            ui.showLoader(isReseed ? 'Re-connecting to P2P network...' : 'Connecting to P2P network...');
+            const trackerOpts = { announce: ['wss://tracker.webtorrent.dev', 'wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz', 'wss://tracker.fastcast.nz'] };
+            app.client.seed(encryptedFile, trackerOpts, (torrent) => {
+                const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
+                const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(originalName)}`;
+                
+                if (isReseed) {
+                    let history = JSON.parse(localStorage.getItem(historyManager.key)) || [];
+                    let item = history.find(i => i.dbId === dbId);
+                    if (item) item.infoHash = torrent.infoHash; // Update infoHash
+                    localStorage.setItem(historyManager.key, JSON.stringify(history));
+                } else {
+                    historyManager.add({
+                        id: Date.now(), dbId: dbId, filename: originalName, filesize: formatBytes(originalSize),
+                        link: shareableLink, key: keyHex, timestamp: Date.now(), infoHash: torrent.infoHash
+                    });
+                }
+                
+                ui.showSeedingInfo({ filename: originalName, filesize: formatBytes(originalSize), link: shareableLink });
+                historyManager.load();
+                ui.updateStatus(`Seeding ${originalName}. Keep this tab open.`);
+            });
+        }
+        
         function handleFileSelect(event) {
             app.selectedFile = event.target.files[0];
             if (app.selectedFile) {
                 dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
                 dom.shareButton.disabled = false;
+                dom.scanStatus.textContent = '';
             }
         }
 
-        // --- Init & Util Functions ---
+        function formatBytes(b, d=2) { if(!+b) return "0 Bytes"; const k=1024, s=["Bytes","KB","MB","GB","TB"], i=Math.floor(Math.log(b)/Math.log(k)); return `${parseFloat((b/Math.pow(k,i)).toFixed(d))} ${s[i]}`; }
+        function getFileIconClass(e) { const t={mp4:"fas fa-file-video",webm:"fas fa-file-video",mkv:"fas fa-file-video",mp3:"fas fa-file-audio",flac:"fas fa-file-audio",png:"fas fa-file-image",jpg:"fas fa-file-image",jpeg:"fas fa-file-image",pdf:"fas fa-file-pdf",zip:"fas fa-file-archive",txt:"fas fa-file-alt"}; return t[e.toLowerCase()]||"fas fa-file"; }
+        function escapeHTML(e) { return e.replace(/[&<>'"]/g, e => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[e]||e); }
+        
         dom.shareButton.addEventListener('click', () => { if(app.selectedFile) startSeeding(app.selectedFile) });
         dom.fileInput.addEventListener('change', handleFileSelect);
-        // ... Other listeners for copy, dropzone, themes ...
-        function formatBytes(b,d=2){if(!+b)return"0 Bytes";const t=1024,e=["Bytes","KB","MB","GB","TB"],i=Math.floor(Math.log(b)/Math.log(t));return`${parseFloat((b/Math.pow(t,i)).toFixed(d))} ${e[i]}`}
-        function getFileIconClass(t){const e={mp4:"fas fa-file-video",webm:"fas fa-file-video",mkv:"fas fa-file-video",mp3:"fas fa-file-audio",flac:"fas fa-file-audio",png:"fas fa-file-image",jpg:"fas fa-file-image",jpeg:"fas fa-file-image",pdf:"fas fa-file-pdf",zip:"fas fa-file-archive",txt:"fas fa-file-alt"};return e[t.toLowerCase()]||"fas fa-file"}
-        function escapeHTML(t){return t.replace(/[&<>'"]/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[t]||t))}
+        dom.dropZone.addEventListener('click', () => dom.fileInput.click());
+        dom.dropZone.addEventListener('dragover', e => { e.preventDefault(); dom.dropZone.classList.add('dragover'); });
+        dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover'));
+        dom.dropZone.addEventListener('drop', e => { e.preventDefault(); dom.dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) { dom.fileInput.files = e.dataTransfer.files; handleFileSelect({ target: dom.fileInput }); } });
+        dom.copyButton.addEventListener('click', () => { navigator.clipboard.writeText(dom.magnetLink.value); dom.copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!'; setTimeout(()=>dom.copyButton.innerHTML='<i class="fas fa-copy"></i> Copy', 2000)});
         
         indexedDBManager.init().then(() => {
             historyManager.load();
