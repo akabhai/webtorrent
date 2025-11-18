@@ -396,9 +396,9 @@
         </div>
     </div>
 
-    <audio id="click-sound" src="https://www.soundjay.com/button/sounds/button-16.mp3" preload="auto"></audio>
-    <audio id="type-sound" src="https://www.soundjay.com/communication/sounds/keyboard-key-01.mp3" preload="auto"></audio>
-
+    <!-- Corrected audio sources with reliable CDN -->
+    <audio id="click-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2d82914c68.mp3" preload="auto"></audio>
+    <audio id="type-sound" src="https://cdn.pixabay.com/download/audio/2022/11/22/audio_0c3d902319.mp3" preload="auto"></audio>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -407,7 +407,6 @@
             client: new WebTorrent(),
             selectedFile: null,
             hackerMode: false,
-            // Known bad hashes (dummy example - e.g., hash of EICAR test string)
             maliciousHashes: ['275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f'],
             allowedFormats: ['mp4', 'mkv', 'webm', 'mp3', 'flac', 'png', 'jpg', 'jpeg', 'pdf', 'txt', 'zip'],
             blockedFormats: ['exe', 'apk', 'bat', 'scr', 'com', 'jar', 'dmg', 'iso', 'msi'],
@@ -424,6 +423,7 @@
             advancedScannerToggle: document.getElementById('advanced-scanner-toggle'),
             scanStatus: document.getElementById('scan-status'),
             status: document.getElementById('status'),
+            uploader: document.getElementById('uploader'),
             loader: document.getElementById('loader'),
             loaderText: document.getElementById('loader-text'),
             seedingInfo: document.getElementById('seeding-info'),
@@ -445,7 +445,6 @@
         // --- UI & THEME ---
         const ui = {
             init() {
-                // Load settings
                 const savedTheme = localStorage.getItem('theme');
                 if (savedTheme === 'dark') {
                     document.body.classList.add('dark-mode');
@@ -461,7 +460,6 @@
                 dom.themeToggle.addEventListener('change', () => this.toggleTheme());
                 dom.hackerToggle.addEventListener('change', () => this.toggleHackerMode(dom.hackerToggle.checked));
                 
-                // Drag and Drop
                 dom.dropZone.addEventListener('click', () => dom.fileInput.click());
                 dom.dropZone.addEventListener('dragover', e => { e.preventDefault(); dom.dropZone.classList.add('dragover'); });
                 dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover'));
@@ -486,43 +484,49 @@
                 localStorage.setItem('hackerMode', enable);
                 if (enable) matrix.start(); else matrix.stop();
             },
+            // ROBUST UI FUNCTIONS to prevent TypeError
             showLoader(text) {
-                dom.loaderText.textContent = text;
-                dom.loader.style.display = 'flex';
-                dom.uploader.style.display = 'none';
-                dom.seedingInfo.style.display = 'none';
+                if (dom.loaderText) dom.loaderText.textContent = text;
+                if (dom.loader) dom.loader.style.display = 'flex';
+                if (dom.uploader) dom.uploader.style.display = 'none';
+                if (dom.seedingInfo) dom.seedingInfo.style.display = 'none';
             },
             hideLoader() {
-                dom.loader.style.display = 'none';
+                if (dom.loader) dom.loader.style.display = 'none';
             },
             showSeedingInfo(data) {
-                dom.resultFilename.textContent = data.filename;
-                dom.resultFilesize.textContent = data.filesize;
-                dom.magnetLink.value = data.link;
-                dom.openStreamButton.onclick = () => window.open(data.link, '_blank');
+                if (dom.resultFilename) dom.resultFilename.textContent = data.filename;
+                if (dom.resultFilesize) dom.resultFilesize.textContent = data.filesize;
+                if (dom.magnetLink) dom.magnetLink.value = data.link;
+                if (dom.openStreamButton) dom.openStreamButton.onclick = () => window.open(data.link, '_blank');
                 
-                dom.qrcodeContainer.innerHTML = "";
-                new QRCode(dom.qrcodeContainer, {
-                    text: data.link,
-                    width: 128,
-                    height: 128,
-                });
+                if (dom.qrcodeContainer) {
+                    dom.qrcodeContainer.innerHTML = "";
+                    new QRCode(dom.qrcodeContainer, { text: data.link, width: 128, height: 128 });
+                }
                 
                 this.hideLoader();
-                dom.seedingInfo.style.display = 'block';
+                if (dom.seedingInfo) dom.seedingInfo.style.display = 'block';
             },
             updateStatus(message, type = 'info') {
+                if (!dom.status) return;
                 dom.status.textContent = message;
                 dom.status.style.color = type === 'error' ? 'var(--danger-color)' : 'var(--text-color)';
             },
             updateScanStatus(message, type = 'info') {
+                if (!dom.scanStatus) return;
                 dom.scanStatus.textContent = message;
-                dom.scanStatus.className = type; // success, warning, danger
+                dom.scanStatus.className = type;
             },
             playSound(sound) {
-                if (app.hackerMode) {
-                    sound.currentTime = 0;
-                    sound.play();
+                // Improved sound playing with error handling
+                if (app.hackerMode && sound) {
+                    try {
+                        sound.currentTime = 0;
+                        sound.play().catch(e => console.warn("Audio play failed. This can happen if the user hasn't interacted with the page yet.", e));
+                    } catch (e) {
+                        console.warn("Could not play sound.", e);
+                    }
                 }
             }
         };
@@ -532,6 +536,7 @@
             intervalId: null,
             start() {
                 const canvas = dom.matrixCanvas;
+                if (!canvas) return;
                 const ctx = canvas.getContext('2d');
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
@@ -560,8 +565,11 @@
                 if (this.intervalId) {
                     clearInterval(this.intervalId);
                     this.intervalId = null;
-                    const ctx = dom.matrixCanvas.getContext('2d');
-                    ctx.clearRect(0, 0, dom.matrixCanvas.width, dom.matrixCanvas.height);
+                    const canvas = dom.matrixCanvas;
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    }
                 }
             }
         };
@@ -587,7 +595,7 @@
             } else {
                 dom.fileNameDisplay.textContent = '';
                 app.selectedFile = null;
-                dom.fileInput.value = ''; // Reset file input
+                dom.fileInput.value = '';
                 dom.shareButton.disabled = true;
             }
         }
@@ -604,24 +612,21 @@
                 ui.updateStatus('');
                 const arrayBuffer = event.target.result;
 
-                // 1. Encryption
-                const key = CryptoJS.lib.WordArray.random(32); // 256-bit key
-                const iv = CryptoJS.lib.WordArray.random(16); // 128-bit IV
+                const key = CryptoJS.lib.WordArray.random(32);
+                const iv = CryptoJS.lib.WordArray.random(16);
                 const wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
                 const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
                 
-                // Combine iv and ciphertext: iv + ciphertext
                 const ivHex = CryptoJS.enc.Hex.parse(iv.toString());
                 const combined = ivHex.concat(encrypted.ciphertext);
                 const encryptedBlob = new Blob([wordArrayToUint8Array(combined)]);
                 const encryptedFile = new File([encryptedBlob], `encrypted-${Date.now()}.dat`);
 
-                // 2. Seeding
                 ui.showLoader('Connecting to P2P network...');
                 app.client.seed(encryptedFile, (torrent) => {
                     ui.showLoader('Generating secure link...');
                     const keyHex = key.toString(CryptoJS.enc.Hex);
-                    const streamPageUrl = `${window.location.origin}${window.location.pathname.replace('index.html', '')}stream.html`;
+                    const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
                     
                     const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(file.name)}`;
 
@@ -637,7 +642,6 @@
                     ui.showSeedingInfo(data);
                     historyManager.add(data);
                     
-                    // Keep seeding
                     ui.updateStatus(`Seeding ${file.name}. Keep this page open.`);
                 });
             };
@@ -661,51 +665,52 @@
         // --- File Scanner ---
         const fileScanner = {
             async scan(file) {
-                // 1. Check format and extension
                 const extension = file.name.split('.').pop().toLowerCase();
                 if (app.blockedFormats.includes(extension)) {
-                    ui.updateScanStatus(`Error: File format ".${extension}" is disallowed for security reasons.`, 'danger');
+                    ui.updateScanStatus(`Error: File format ".${extension}" is disallowed.`, 'danger');
                     return false;
                 }
                 if (!app.allowedFormats.includes(extension)) {
-                    ui.updateScanStatus(`Warning: File format ".${extension}" is not on the recommended list. Proceed with caution.`, 'warning');
-                    // We allow it but warn. Change to `return false;` to block.
+                    ui.updateScanStatus(`Warning: Format ".${extension}" is not recommended.`, 'warning');
                 }
 
-                // 2. Double extension check
                 const suspiciousExtensions = ['.pdf.exe', '.jpg.exe', '.mp4.exe', '.txt.bat'];
                 for (const susExt of suspiciousExtensions) {
                     if (file.name.toLowerCase().endsWith(susExt)) {
-                        ui.updateScanStatus(`Error: Suspicious double extension detected! (${susExt})`, 'danger');
+                        ui.updateScanStatus(`Error: Suspicious double extension! (${susExt})`, 'danger');
                         return false;
                     }
                 }
 
-                // 3. MIME type mismatch
                 if (file.type) {
                     const expectedMime = this.getMimeType(extension);
                     if (expectedMime && !file.type.startsWith(expectedMime.split('/')[0])) {
-                         ui.updateScanStatus(`Warning: MIME type mismatch. Extension is ".${extension}" but browser reports type "${file.type}".`, 'warning');
+                         ui.updateScanStatus(`Warning: MIME type mismatch. Ext: ".${extension}", Type: "${file.type}".`, 'warning');
                     }
                 }
 
-                // Advanced checks if enabled
                 if (dom.advancedScannerToggle.checked) {
                     ui.showLoader('Performing advanced scan...');
-                    // 4. Hash-based check
-                    const hash = await this.calculateHash(file);
-                    if (app.maliciousHashes.includes(hash)) {
-                        ui.updateScanStatus('Error: File matches a known malicious signature!', 'danger');
-                        ui.hideLoader();
-                        return false;
-                    }
+                    try {
+                        const hash = await this.calculateHash(file);
+                        if (app.maliciousHashes.includes(hash)) {
+                            ui.updateScanStatus('Error: File matches a known malicious signature!', 'danger');
+                            ui.hideLoader();
+                            dom.uploader.style.display = 'block'; // Show uploader again
+                            return false;
+                        }
 
-                    // 5. Entropy check (for high-entropy packed malware)
-                    const entropy = await this.calculateEntropy(file);
-                    if (entropy > 7.5) { // High entropy can indicate compressed or encrypted data (or malware)
-                         ui.updateScanStatus(`Warning: File has high entropy (${entropy.toFixed(2)}). This can be normal for zip/video files, but suspicious for others.`, 'warning');
+                        const entropy = await this.calculateEntropy(file);
+                        if (entropy > 7.5) {
+                            ui.updateScanStatus(`Warning: File has high entropy (${entropy.toFixed(2)}).`, 'warning');
+                        }
+                    } catch (err) {
+                        console.error("Advanced scan failed:", err);
+                        ui.updateScanStatus('Advanced scan could not be completed.', 'warning');
+                    } finally {
+                        ui.hideLoader();
+                        dom.uploader.style.display = 'block'; // Show uploader again
                     }
-                    ui.hideLoader();
                 }
                 
                 return true;
@@ -729,6 +734,7 @@
                 }
                 let entropy = 0;
                 const len = bytes.length;
+                if (len === 0) return 0;
                 for (const p of Object.values(map)) {
                     const freq = p / len;
                     entropy -= freq * Math.log2(freq);
@@ -741,8 +747,11 @@
         const historyManager = {
             key: 'webtorrent-history',
             load() {
-                let history = JSON.parse(localStorage.getItem(this.key)) || [];
-                // Filter out entries older than 30 days
+                let history = [];
+                try {
+                    history = JSON.parse(localStorage.getItem(this.key)) || [];
+                } catch (e) { console.error("Could not parse history:", e); }
+                
                 const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
                 history = history.filter(item => item.timestamp > thirtyDaysAgo);
                 localStorage.setItem(this.key, JSON.stringify(history));
@@ -758,10 +767,13 @@
                 }
             },
             add(item) {
-                let history = JSON.parse(localStorage.getItem(this.key)) || [];
+                let history = [];
+                try {
+                    history = JSON.parse(localStorage.getItem(this.key)) || [];
+                } catch (e) { console.error("Could not parse history:", e); }
                 history.push(item);
                 localStorage.setItem(this.key, JSON.stringify(history));
-                this.load(); // Reload to display
+                this.load();
             },
             delete(id) {
                 ui.playSound(dom.clickSound);
@@ -779,14 +791,15 @@
                     <td>${item.filesize}</td>
                     <td>${new Date(item.timestamp).toLocaleString()}</td>
                     <td class="history-actions">
-                        <button class="btn-copy-magnet" data-link="${item.link}"><i class="fas fa-copy"></i> Copy</button>
-                        <button onclick="window.open('${item.link}', '_blank')"><i class="fas fa-external-link-alt"></i> Open</button>
-                        <button class="btn-delete-history btn-danger" data-id="${item.id}"><i class="fas fa-trash"></i></button>
+                        <button class="btn-copy-magnet"><i class="fas fa-copy"></i> Copy</button>
+                        <button class="btn-open-stream"><i class="fas fa-external-link-alt"></i> Open</button>
+                        <button class="btn-delete-history btn-danger"><i class="fas fa-trash"></i></button>
                     </td>
                 `;
                 dom.historyTableBody.appendChild(row);
 
-                row.querySelector('.btn-delete-history').addEventListener('click', (e) => this.delete(item.id));
+                row.querySelector('.btn-delete-history').addEventListener('click', () => this.delete(item.id));
+                row.querySelector('.btn-open-stream').addEventListener('click', () => window.open(item.link, '_blank'));
                 row.querySelector('.btn-copy-magnet').addEventListener('click', (e) => {
                     const btn = e.currentTarget;
                     navigator.clipboard.writeText(item.link).then(() => {
@@ -799,12 +812,12 @@
 
         // --- Utility Functions ---
         function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
+            if (!+bytes) return '0 Bytes';
             const k = 1024;
             const dm = decimals < 0 ? 0 : decimals;
             const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
         }
 
         function wordArrayToUint8Array(wordArray) {
@@ -828,10 +841,7 @@
         
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;', '<': '&lt;', '>': '&gt;',
-                    "'": '&#39;', '"': '&quot;'
-                }[tag] || tag)
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
             );
         }
 
