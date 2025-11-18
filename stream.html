@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Downloading File - P2P Sharer</title>
+    
+    <!-- CDNs -->
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+
+    <style>
+        /* --- CORE STYLES & THEMES (Same as index.html for consistency) --- */
+        :root {
+            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            --font-hacker: 'Courier New', Courier, monospace;
+        }
+        :root, :root.light-mode {
+            --bg-color: #f0f2f5; --text-color: #333; --header-color: #4a4a4a;
+            --card-bg: rgba(255, 255, 255, 0.6); --card-border: rgba(255, 255, 255, 0.8);
+            --neon-border-color: #007bff; --accent-color: #007bff; --accent-hover: #0056b3;
+            --success-color: #28a745; --danger-color: #dc3545;
+        }
+        :root.dark-mode {
+            --bg-color: #1a1a1a; --text-color: #e0e0e0; --header-color: #f5f5f5;
+            --card-bg: rgba(10, 10, 10, 0.5); --card-border: rgba(255, 255, 255, 0.1);
+            --neon-border-color: #00e5ff; --accent-color: #00e5ff; --accent-hover: #00b8d4;
+            --success-color: #00e676; --danger-color: #ff5252;
+        }
+        :root.hacker-mode {
+            --bg-color: #000; --text-color: #0f0; --header-color: #0f0;
+            --card-bg: rgba(0, 20, 0, 0.6); --card-border: rgba(0, 255, 0, 0.3);
+            --neon-border-color: #0f0; --accent-color: #0f0; --accent-hover: #3f3;
+            --success-color: #0f0; --danger-color: #f00;
+        }
+        body {
+            font-family: var(--font-main); background-color: var(--bg-color);
+            color: var(--text-color); margin: 0; padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+            display: flex; align-items: center; justify-content: center; min-height: 100vh;
+        }
+        body.hacker-mode { font-family: var(--font-hacker); }
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; display: none; }
+        body.hacker-mode #matrix-canvas { display: block; }
+        .container { max-width: 800px; width: 100%; }
+        .card {
+            background: var(--card-bg); border: 1px solid var(--card-border);
+            border-radius: 15px; padding: 25px; backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); text-align: center;
+        }
+        .animated-header { font-size: 2.5em; font-weight: bold; color: var(--header-color); animation: color-cycle 10s infinite; }
+        @keyframes color-cycle { 0% { color: var(--header-color); } 50% { color: var(--accent-color); } 100% { color: var(--header-color); } }
+
+        /* --- Download UI --- */
+        #status-area h2 { word-wrap: break-word; }
+        .progress-bar { width: 100%; background-color: #ddd; border-radius: 5px; overflow: hidden; margin: 20px 0; }
+        .progress {
+            width: 0%; height: 25px; background-color: var(--accent-color);
+            text-align: center; line-height: 25px; color: white;
+            font-weight: bold; transition: width 0.2s;
+        }
+        #stats { display: flex; justify-content: space-around; font-size: 0.9em; opacity: 0.8; }
+        #player-area { margin-top: 20px; }
+        #player-area video, #player-area audio { max-width: 100%; border-radius: 10px; }
+        #download-button {
+            display: none; background-color: var(--success-color); color: white; border: none;
+            padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold;
+            font-size: 1.1em; text-decoration: none; margin-top: 20px;
+        }
+        /* Loader */
+        .loader-container { padding: 40px 0; }
+        .loader {
+            margin: 0 auto; border: 5px solid #f3f3f3; border-top: 5px solid var(--accent-color);
+            border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-canvas"></canvas>
+    <div class="container">
+        <div class="card">
+            <h1 class="animated-header">P2P Secure Download</h1>
+            
+            <div id="status-area">
+                <h2 id="filename"></h2>
+                <div id="info-message"></div>
+                <div class="loader-container" id="loader">
+                    <div class="loader"></div>
+                    <p>P2P Swarm Connecting...</p>
+                </div>
+            </div>
+
+            <div id="download-progress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress" id="progress">0%</div>
+                </div>
+                <div id="stats">
+                    <span><i class="fas fa-arrow-down"></i> <span id="speed">0 MB/s</span></span>
+                    <span><i class="fas fa-users"></i> <span id="peers">0 peers</span></span>
+                </div>
+            </div>
+
+            <div id="player-area"></div>
+            <a id="download-button" href="#" download>
+                <i class="fas fa-download"></i> Download Decrypted File
+            </a>
+
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- App State & DOM Elements ---
+        const dom = {
+            filename: document.getElementById('filename'),
+            infoMessage: document.getElementById('info-message'),
+            loader: document.getElementById('loader'),
+            downloadProgress: document.getElementById('download-progress'),
+            progressBar: document.getElementById('progress'),
+            speed: document.getElementById('speed'),
+            peers: document.getElementById('peers'),
+            playerArea: document.getElementById('player-area'),
+            downloadButton: document.getElementById('download-button'),
+            matrixCanvas: document.getElementById('matrix-canvas'),
+        };
+
+        // --- Theme Sync ---
+        (function applyTheme() {
+            if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+            if (localStorage.getItem('hackerMode') === 'true') {
+                document.body.classList.add('hacker-mode');
+                matrix.start();
+            }
+        })();
+
+        // --- Matrix Effect (Same as index.html) ---
+        const matrix = {
+            intervalId: null,
+            start() {
+                const canvas = dom.matrixCanvas;
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}';
+                const fontSize = 14; const columns = canvas.width / fontSize;
+                const drops = Array(Math.floor(columns)).fill(1);
+                function draw() {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#0f0'; ctx.font = `${fontSize}px monospace`;
+                    for (let i = 0; i < drops.length; i++) {
+                        const text = letters[Math.floor(Math.random() * letters.length)];
+                        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                        drops[i]++;
+                    }
+                }
+                this.intervalId = setInterval(draw, 33);
+            },
+            stop() { if (this.intervalId) clearInterval(this.intervalId); }
+        };
+
+        // --- Main Logic ---
+        const params = new URLSearchParams(window.location.search);
+        const magnetURI = params.get('magnet');
+        const keyHex = params.get('key');
+        const originalFilename = params.get('filename') || 'downloaded-file';
+
+        if (!magnetURI || !keyHex) {
+            showError("Error: Missing magnet link or decryption key in URL.");
+            return;
+        }
+
+        dom.filename.textContent = `Preparing: ${escapeHTML(originalFilename)}`;
+        const client = new WebTorrent();
+
+        client.on('error', err => showError(err.message));
+
+        client.add(magnetURI, torrent => {
+            dom.loader.style.display = 'none';
+            dom.downloadProgress.style.display = 'block';
+            dom.infoMessage.textContent = 'Downloading file from peers...';
+            
+            const file = torrent.files[0];
+            dom.filename.textContent = escapeHTML(originalFilename);
+
+            torrent.on('download', bytes => {
+                const progress = (torrent.progress * 100).toFixed(1);
+                dom.progressBar.style.width = `${progress}%`;
+                dom.progressBar.textContent = `${progress}%`;
+                dom.speed.textContent = `${formatBytes(torrent.downloadSpeed)}/s`;
+                dom.peers.textContent = `${torrent.numPeers} peers`;
+            });
+
+            torrent.on('done', () => {
+                dom.infoMessage.innerHTML = `<i class="fas fa-lock-open"></i> Download complete. Decrypting file...`;
+                dom.progressBar.style.width = '100%';
+                dom.progressBar.textContent = '100%';
+                dom.progressBar.style.backgroundColor = 'var(--success-color)';
+
+                file.arrayBuffer().then(encryptedBuffer => {
+                    try {
+                        const key = CryptoJS.enc.Hex.parse(keyHex);
+                        
+                        // Extract IV from the start of the buffer
+                        const iv = CryptoJS.lib.WordArray.create(encryptedBuffer.slice(0, 16));
+                        const ciphertext = CryptoJS.lib.WordArray.create(encryptedBuffer.slice(16));
+                        
+                        const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertext }, key, { iv: iv });
+                        const decryptedArray = wordArrayToUint8Array(decrypted);
+
+                        if (decryptedArray.length === 0) {
+                            throw new Error("Decryption failed: result is empty. Check your key.");
+                        }
+
+                        dom.infoMessage.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success-color);"></i> Decrypted ✔`;
+                        const blob = new Blob([decryptedArray]);
+                        renderFile(blob, originalFilename);
+
+                    } catch (e) {
+                        console.error('Decryption error:', e);
+                        showError("Decryption failed. The key may be incorrect or the file is corrupted.");
+                    }
+                });
+            });
+        });
+        
+        function renderFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const fileType = getFileType(filename);
+
+            if (fileType === 'video') {
+                const video = document.createElement('video');
+                video.src = url;
+                video.controls = true;
+                dom.playerArea.appendChild(video);
+            } else if (fileType === 'audio') {
+                const audio = document.createElement('audio');
+                audio.src = url;
+                audio.controls = true;
+                dom.playerArea.appendChild(audio);
+            } else if (fileType === 'image') {
+                const img = document.createElement('img');
+                img.src = url;
+                img.style.maxWidth = '100%';
+                img.style.borderRadius = '10px';
+                dom.playerArea.appendChild(img);
+            }
+            
+            dom.downloadButton.href = url;
+            dom.downloadButton.download = filename;
+            dom.downloadButton.style.display = 'inline-block';
+        }
+
+        // --- Utility Functions ---
+        function showError(message) {
+            dom.loader.style.display = 'none';
+            dom.infoMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+            dom.infoMessage.style.color = 'var(--danger-color)';
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            if (['mp4', 'webm', 'mkv'].includes(ext)) return 'video';
+            if (['mp3', 'flac', 'wav'].includes(ext)) return 'audio';
+            if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) return 'image';
+            return 'other';
+        }
+        
+        function wordArrayToUint8Array(wordArray) {
+            const l = wordArray.sigBytes;
+            const u8_array = new Uint8Array(l);
+            for (let i = 0; i < l; i++) {
+                u8_array[i] = (wordArray.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+            }
+            return u8_array;
+        }
+        
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;',
+                    "'": '&#39;', '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+    });
+    </script>
+</body>
+</html>
