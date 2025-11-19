@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -204,6 +205,9 @@
             background-color: rgba(0, 123, 255, 0.1);
         }
         #file-input { display: none; }
+        /* <!-- CHANGE START --> */
+        #re-seed-file-input { display: none; }
+        /* <!-- CHANGE END --> */
 
         .advanced-scanner {
             margin-top: 15px;
@@ -234,6 +238,8 @@
         button:hover { background-color: var(--accent-hover); }
         button:disabled { background-color: #6c757d; cursor: not-allowed; }
         .btn-danger { background-color: var(--danger-color); }
+        .btn-warning { background-color: var(--warning-color); }
+
 
         /* --- Seeding Result Section --- */
         #seeding-info { display: none; }
@@ -309,7 +315,7 @@
             .result-box { flex-direction: column; gap: 10px; }
             .result-box input { width: 100%; }
             .result-box button { width: 100%; border-radius: 5px; margin-left: 0; }
-            .history-actions { display: flex; flex-direction: column; gap: 5px; }
+            .history-actions { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
         }
     </style>
 </head>
@@ -343,6 +349,9 @@
                     <p>Drag & Drop a file here, or click to select</p>
                     <p id="file-name"></p>
                     <input type="file" id="file-input">
+                    <!-- <!-- CHANGE START --> -->
+                    <input type="file" id="re-seed-file-input">
+                    <!-- <!-- CHANGE END --> -->
                 </div>
                 <div class="advanced-scanner">
                      <label class="toggle-switch">
@@ -362,7 +371,7 @@
             <div id="seeding-info">
                 <h3><i class="fas fa-check-circle" style="color: var(--success-color);"></i> Link Ready!</h3>
                 <p><strong>File:</strong> <span id="result-filename"></span> (<span id="result-filesize"></span>)</p>
-                <p><strong>Status:</strong> Seeding to P2P network... <span style="color: var(--success-color);">Encrypted ✔</span></p>
+                <p><strong>Status:</strong> <span id="seeding-status"></span></p>
                 <div class="result-box">
                     <input type="text" id="magnet-link" readonly>
                     <button id="copy-button"><i class="fas fa-copy"></i> Copy</button>
@@ -404,9 +413,9 @@
         self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
 
         self.onmessage = function(e) {
-            const arrayBuffer = e.data;
+            const { arrayBuffer, keyHex } = e.data; // keyHex can be null
             try {
-                const key = CryptoJS.lib.WordArray.random(32);
+                const key = keyHex ? CryptoJS.enc.Hex.parse(keyHex) : CryptoJS.lib.WordArray.random(32);
                 const iv = CryptoJS.lib.WordArray.random(16);
                 const wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
                 const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
@@ -433,8 +442,26 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- App State & Config ---
+        // --- CHANGE START ---
+        // Points #2 and #3: Optimizing the WebTorrent client
+        const rtcConfig = {
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:global.stun.twilio.com:3478" },
+            { urls: "stun:stun.services.mozilla.com" }
+          ],
+          iceTransportPolicy: "all",
+          bundlePolicy: "max-bundle"
+        };
+        const clientOptions = {
+            tracker: {
+                rtcConfig: rtcConfig
+            },
+            maxConns: 100 // Increased from default 55
+        };
         const app = {
-            client: new WebTorrent(),
+            client: new WebTorrent(clientOptions),
+        // --- CHANGE END ---
             selectedFile: null,
             hackerMode: false,
             maliciousHashes: ['275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f'],
@@ -448,6 +475,9 @@
             hackerToggle: document.getElementById('hacker-toggle'),
             dropZone: document.getElementById('drop-zone'),
             fileInput: document.getElementById('file-input'),
+            // --- CHANGE START ---
+            reSeedFileInput: document.getElementById('re-seed-file-input'),
+            // --- CHANGE END ---
             fileNameDisplay: document.getElementById('file-name'),
             shareButton: document.getElementById('share-button'),
             advancedScannerToggle: document.getElementById('advanced-scanner-toggle'),
@@ -459,6 +489,7 @@
             seedingInfo: document.getElementById('seeding-info'),
             resultFilename: document.getElementById('result-filename'),
             resultFilesize: document.getElementById('result-filesize'),
+            seedingStatus: document.getElementById('seeding-status'), // Changed
             magnetLink: document.getElementById('magnet-link'),
             copyButton: document.getElementById('copy-button'),
             openStreamButton: document.getElementById('open-stream-button'),
@@ -534,6 +565,10 @@
                     new QRCode(dom.qrcodeContainer, { text: data.link, width: 128, height: 128 });
                 }
                 
+                // --- CHANGE START ---
+                dom.seedingStatus.innerHTML = `Seeding to P2P network. <strong style="color: var(--warning-color);">Keep this page open to keep the file alive!</strong> <span style="color: var(--success-color);">Encrypted ✔</span>`;
+                // --- CHANGE END ---
+                
                 this.hideLoader();
                 if (dom.seedingInfo) dom.seedingInfo.style.display = 'block';
             },
@@ -588,9 +623,18 @@
 
         // --- File Handling & Seeding ---
         dom.fileInput.addEventListener('change', handleFileSelect);
-        dom.shareButton.addEventListener('click', startSeeding);
+        dom.shareButton.addEventListener('click', () => startSeeding()); // Modified
         dom.copyButton.addEventListener('click', copyMagnetLink);
         dom.uploadMoreButton.addEventListener('click', resetUploaderUI);
+        // --- CHANGE START ---
+        dom.reSeedFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const historyItem = JSON.parse(event.target.dataset.historyItem);
+            if (file && historyItem) {
+                startSeeding(file, historyItem.key, historyItem.filename);
+            }
+        });
+        // --- CHANGE END ---
         
         function resetUploaderUI() {
             ui.playSound(dom.clickSound);
@@ -601,13 +645,7 @@
             dom.fileNameDisplay.textContent = '';
             dom.shareButton.disabled = true;
             dom.scanStatus.textContent = '';
-
-            const seedingCount = app.client.torrents.length;
-            if (seedingCount > 0) {
-                ui.updateStatus(`Seeding ${seedingCount} file${seedingCount > 1 ? 's' : ''} in the background. Ready for next upload.`);
-            } else {
-                ui.updateStatus('');
-            }
+            ui.updateStatus(`Seeding ${app.client.torrents.length} file(s) in the background. Ready for next upload.`);
         }
         
         async function handleFileSelect(event) {
@@ -632,15 +670,16 @@
             }
         }
 
-        async function startSeeding() {
-            if (!app.selectedFile) return;
+        async function startSeeding(fileToSeed = null, existingKey = null, originalFilename = null) {
+            const file = fileToSeed || app.selectedFile;
+            if (!file) return;
             ui.playSound(dom.clickSound);
             ui.showLoader('Reading file...');
 
             try {
-                const arrayBuffer = await app.selectedFile.arrayBuffer();
+                const arrayBuffer = await file.arrayBuffer();
                 
-                ui.showLoader('Encrypting in background... (UI will remain responsive)');
+                ui.showLoader('Encrypting in background...');
 
                 const workerScript = document.getElementById('encryption-worker').textContent;
                 const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
@@ -654,35 +693,32 @@
 
                     ui.showLoader('Connecting to P2P network...');
                     
-                    const trackerOpts = {
-                        announce: [
-                            'wss://tracker.webtorrent.dev',
-                            'wss://tracker.openwebtorrent.com',
-                            'wss://tracker.btorrent.xyz',
-                            'wss://tracker.fastcast.nz'
-                        ]
-                    };
-
-                    app.client.seed(encryptedFile, trackerOpts, (torrent) => {
+                    app.client.seed(encryptedFile, (torrent) => {
                         ui.showLoader('Generating secure link...');
+                        const filename = originalFilename || file.name;
                         const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
-                        const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(app.selectedFile.name)}`;
+                        const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(filename)}`;
 
                         const data = {
-                            id: Date.now(), filename: app.selectedFile.name,
-                            filesize: formatBytes(app.selectedFile.size), link: shareableLink,
+                            id: Date.now(), filename: filename,
+                            filesize: formatBytes(file.size), link: shareableLink,
                             key: keyHex, timestamp: Date.now(),
                         };
                         
                         ui.showSeedingInfo(data);
-                        historyManager.add(data);
-                        ui.updateStatus(`Seeding ${app.selectedFile.name}. Keep this page open.`);
+                        
+                        // Don't add to history if re-seeding an existing entry
+                        if (!existingKey) {
+                            historyManager.add(data);
+                        }
+                        
+                        ui.updateStatus(`Seeding ${app.client.torrents.length} file(s). Keep this page open.`);
                         worker.terminate();
                     });
                 };
 
                 worker.onerror = (err) => { throw err; };
-                worker.postMessage(arrayBuffer, [arrayBuffer]);
+                worker.postMessage({ arrayBuffer: arrayBuffer, keyHex: existingKey }, [arrayBuffer]);
 
             } catch (err) {
                 console.error("Seeding process failed:", err);
@@ -749,7 +785,12 @@
             },
             add(item) {
                 let history = JSON.parse(localStorage.getItem(this.key)) || [];
-                history.push(item); localStorage.setItem(this.key, JSON.stringify(history)); this.load();
+                // Prevent duplicates
+                if (!history.some(h => h.key === item.key)) {
+                    history.push(item);
+                }
+                localStorage.setItem(this.key, JSON.stringify(history)); 
+                this.load();
             },
             delete(id) {
                 ui.playSound(dom.clickSound); let history = JSON.parse(localStorage.getItem(this.key)) || [];
@@ -757,8 +798,15 @@
             },
             renderRow(item) {
                 const row = document.createElement('tr'); const fileExt = item.filename.split('.').pop();
+                // --- CHANGE START ---
                 row.innerHTML = `<td><i class="${getFileIconClass(fileExt)} file-icon"></i></td><td>${escapeHTML(item.filename)}</td><td>${item.filesize}</td><td>${new Date(item.timestamp).toLocaleString()}</td>
-                    <td class="history-actions"><button class="btn-copy-magnet"><i class="fas fa-copy"></i> Copy</button><button class="btn-open-stream"><i class="fas fa-external-link-alt"></i> Open</button><button class="btn-delete-history btn-danger"><i class="fas fa-trash"></i></button></td>`;
+                    <td class="history-actions">
+                        <button class="btn-copy-magnet"><i class="fas fa-copy"></i> Copy</button>
+                        <button class="btn-open-stream"><i class="fas fa-external-link-alt"></i> Open</button>
+                        <button class="btn-re-seed btn-warning"><i class="fas fa-sync-alt"></i> Re-seed</button>
+                        <button class="btn-delete-history btn-danger"><i class="fas fa-trash"></i></button>
+                    </td>`;
+                // --- CHANGE END ---
                 dom.historyTableBody.appendChild(row);
                 row.querySelector('.btn-delete-history').addEventListener('click', () => this.delete(item.id));
                 row.querySelector('.btn-open-stream').addEventListener('click', () => window.open(item.link, '_blank'));
@@ -767,6 +815,13 @@
                         btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
                     });
                 });
+                // --- CHANGE START ---
+                row.querySelector('.btn-re-seed').addEventListener('click', () => {
+                    alert('Please select the original file to re-seed it.');
+                    dom.reSeedFileInput.dataset.historyItem = JSON.stringify(item);
+                    dom.reSeedFileInput.click();
+                });
+                // --- CHANGE END ---
             }
         };
 
