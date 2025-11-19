@@ -1,3 +1,5 @@
+--- START OF FILE stream.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -121,11 +123,38 @@
         }
 
         dom.filename.textContent = `Preparing: ${escapeHTML(originalFilename)}`;
-        const client = new WebTorrent();
+
+        // --- CHANGE START: OPTIMIZED CLIENT AND TRACKER LIST ---
+        const rtcConfig = {
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:global.stun.twilio.com:3478" },
+            { urls: "stun:stun.services.mozilla.com" }
+          ],
+          iceTransportPolicy: "all",
+          bundlePolicy: "max-bundle"
+        };
+        const clientOptions = {
+            tracker: {
+                rtcConfig: rtcConfig
+            }
+        };
+        const client = new WebTorrent(clientOptions);
 
         client.on('error', err => showError(err.message));
 
-        client.add(magnetURI, torrent => {
+        const trackerOpts = {
+            announce: [
+                'wss://tracker.webtorrent.dev',
+                'wss://tracker.openwebtorrent.com',
+                'wss://tracker.files.fm:7073/announce',
+                'wss://tracker.fastcast.nz',
+                // 'wss://tracker.btorrent.xyz' // Often offline
+            ]
+        };
+
+        client.add(magnetURI, trackerOpts, torrent => {
+        // --- CHANGE END ---
             torrentInstance = torrent;
             dom.loader.style.display = 'none';
             dom.infoMessage.textContent = 'Connected to P2P network. Please choose an option.';
@@ -154,12 +183,10 @@
             });
 
             torrentInstance.on('done', () => {
-                dom.infoMessage.innerHTML = `<i class="fas-spinner fa-spin"></i> Download complete. Finalizing file...`;
+                dom.infoMessage.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Download complete. Finalizing file...`;
                 dom.progressBar.style.width = '100%';
                 dom.progressBar.textContent = '100%';
                 
-                // --- THIS IS THE CRITICAL FIX ---
-                // Use file.getBuffer instead of file.arrayBuffer
                 file.getBuffer((err, encryptedBuffer) => {
                     if (err) {
                         return showError(`Failed to get file buffer: ${err.message}`);
@@ -189,7 +216,6 @@
 
                     worker.onerror = (err) => { worker.terminate(); showError("A critical error occurred in the decryption worker."); };
                     
-                    // Convert the Node.js Buffer from getBuffer() into a transferable ArrayBuffer
                     const arrayBuffer = encryptedBuffer.buffer.slice(encryptedBuffer.byteOffset, encryptedBuffer.byteOffset + encryptedBuffer.byteLength);
                     worker.postMessage({ encryptedBuffer: arrayBuffer, keyHex }, [arrayBuffer]);
                 });
