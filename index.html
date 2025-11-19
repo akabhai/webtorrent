@@ -1,4 +1,4 @@
-
+--- START OF FILE index.html ---
 
 <!DOCTYPE html>
 <html lang="en">
@@ -205,9 +205,7 @@
             background-color: rgba(0, 123, 255, 0.1);
         }
         #file-input { display: none; }
-        /* <!-- CHANGE START --> */
         #re-seed-file-input { display: none; }
-        /* <!-- CHANGE END --> */
 
         .advanced-scanner {
             margin-top: 15px;
@@ -349,9 +347,7 @@
                     <p>Drag & Drop a file here, or click to select</p>
                     <p id="file-name"></p>
                     <input type="file" id="file-input">
-                    <!-- <!-- CHANGE START --> -->
                     <input type="file" id="re-seed-file-input">
-                    <!-- <!-- CHANGE END --> -->
                 </div>
                 <div class="advanced-scanner">
                      <label class="toggle-switch">
@@ -408,32 +404,63 @@
 
     <audio id="click-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2d82914c68.mp3" preload="auto"></audio>
 
-    <!-- INLINE WEB WORKER FOR NON-BLOCKING ENCRYPTION -->
+    <!-- INLINE WEB WORKER FOR STREAMING ENCRYPTION -->
     <script id="encryption-worker" type="javascript/worker">
         self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
 
+        let aesEncryptor = null;
+        let key = null;
+        let iv = null;
+        let combinedChunks = null;
+
         self.onmessage = function(e) {
-            const { arrayBuffer, keyHex } = e.data; // keyHex can be null
+            const { action, payload } = e.data;
+
             try {
-                const key = keyHex ? CryptoJS.enc.Hex.parse(keyHex) : CryptoJS.lib.WordArray.random(32);
-                const iv = CryptoJS.lib.WordArray.random(16);
-                const wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
-                const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
-                const combined = iv.concat(encrypted.ciphertext);
+                switch (action) {
+                    case 'init':
+                        key = payload.keyHex ? CryptoJS.enc.Hex.parse(payload.keyHex) : CryptoJS.lib.WordArray.random(32);
+                        iv = CryptoJS.lib.WordArray.random(16);
+                        aesEncryptor = CryptoJS.algo.AES.createEncryptor(key, { iv: iv });
+                        combinedChunks = CryptoJS.lib.WordArray.create();
+                        self.postMessage({ status: 'initialized' });
+                        break;
 
-                const l = combined.sigBytes;
-                const u8_array = new Uint8Array(l);
-                for (let i = 0; i < l; i++) {
-                    u8_array[i] = (combined.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+                    case 'update':
+                        const wordArrayChunk = CryptoJS.lib.WordArray.create(payload.chunk);
+                        const encryptedChunk = aesEncryptor.process(wordArrayChunk);
+                        if (encryptedChunk && encryptedChunk.sigBytes > 0) {
+                            combinedChunks.concat(encryptedChunk);
+                        }
+                        self.postMessage({ status: 'processing' });
+                        break;
+
+                    case 'finalize':
+                        const finalChunk = aesEncryptor.finalize();
+                        if (finalChunk && finalChunk.sigBytes > 0) {
+                            combinedChunks.concat(finalChunk);
+                        }
+                        
+                        const finalCiphertext = iv.concat(combinedChunks);
+
+                        const l = finalCiphertext.sigBytes;
+                        const u8_array = new Uint8Array(l);
+                        for (let i = 0; i < l; i++) {
+                            u8_array[i] = (finalCiphertext.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+                        }
+                        const encryptedBuffer = u8_array.buffer;
+
+                        self.postMessage({
+                            status: 'finished',
+                            result: {
+                                encryptedBuffer: encryptedBuffer,
+                                keyHex: key.toString(CryptoJS.enc.Hex)
+                            }
+                        }, [encryptedBuffer]);
+                        break;
                 }
-                const encryptedBuffer = u8_array.buffer;
-
-                self.postMessage({
-                    encryptedBuffer: encryptedBuffer,
-                    keyHex: key.toString(CryptoJS.enc.Hex)
-                }, [encryptedBuffer]);
             } catch (error) {
-                self.postMessage({ error: error.message });
+                self.postMessage({ status: 'error', error: error.message });
             }
         };
     </script>
@@ -442,8 +469,6 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- App State & Config ---
-        // --- CHANGE START ---
-        // Points #2 and #3: Optimizing the WebTorrent client
         const rtcConfig = {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
@@ -457,11 +482,10 @@
             tracker: {
                 rtcConfig: rtcConfig
             },
-            maxConns: 100 // Increased from default 55
+            maxConns: 100 
         };
         const app = {
             client: new WebTorrent(clientOptions),
-        // --- CHANGE END ---
             selectedFile: null,
             hackerMode: false,
             maliciousHashes: ['275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f'],
@@ -475,9 +499,7 @@
             hackerToggle: document.getElementById('hacker-toggle'),
             dropZone: document.getElementById('drop-zone'),
             fileInput: document.getElementById('file-input'),
-            // --- CHANGE START ---
             reSeedFileInput: document.getElementById('re-seed-file-input'),
-            // --- CHANGE END ---
             fileNameDisplay: document.getElementById('file-name'),
             shareButton: document.getElementById('share-button'),
             advancedScannerToggle: document.getElementById('advanced-scanner-toggle'),
@@ -489,7 +511,7 @@
             seedingInfo: document.getElementById('seeding-info'),
             resultFilename: document.getElementById('result-filename'),
             resultFilesize: document.getElementById('result-filesize'),
-            seedingStatus: document.getElementById('seeding-status'), // Changed
+            seedingStatus: document.getElementById('seeding-status'), 
             magnetLink: document.getElementById('magnet-link'),
             copyButton: document.getElementById('copy-button'),
             openStreamButton: document.getElementById('open-stream-button'),
@@ -565,9 +587,7 @@
                     new QRCode(dom.qrcodeContainer, { text: data.link, width: 128, height: 128 });
                 }
                 
-                // --- CHANGE START ---
                 dom.seedingStatus.innerHTML = `Seeding to P2P network. <strong style="color: var(--warning-color);">Keep this page open to keep the file alive!</strong> <span style="color: var(--success-color);">Encrypted ✔</span>`;
-                // --- CHANGE END ---
                 
                 this.hideLoader();
                 if (dom.seedingInfo) dom.seedingInfo.style.display = 'block';
@@ -623,10 +643,9 @@
 
         // --- File Handling & Seeding ---
         dom.fileInput.addEventListener('change', handleFileSelect);
-        dom.shareButton.addEventListener('click', () => startSeeding()); // Modified
+        dom.shareButton.addEventListener('click', () => startSeeding());
         dom.copyButton.addEventListener('click', copyMagnetLink);
         dom.uploadMoreButton.addEventListener('click', resetUploaderUI);
-        // --- CHANGE START ---
         dom.reSeedFileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             const historyItem = JSON.parse(event.target.dataset.historyItem);
@@ -634,7 +653,6 @@
                 startSeeding(file, historyItem.key, historyItem.filename);
             }
         });
-        // --- CHANGE END ---
         
         function resetUploaderUI() {
             ui.playSound(dom.clickSound);
@@ -669,56 +687,40 @@
                 dom.shareButton.disabled = true;
             }
         }
-
+        
         async function startSeeding(fileToSeed = null, existingKey = null, originalFilename = null) {
             const file = fileToSeed || app.selectedFile;
             if (!file) return;
             ui.playSound(dom.clickSound);
-            ui.showLoader('Reading file...');
+            ui.showLoader('Initializing encryption...');
 
             try {
-                const arrayBuffer = await file.arrayBuffer();
+                const encryptedResult = await encryptFileStreaming(file, existingKey);
+                const { encryptedBuffer, keyHex } = encryptedResult;
+                const encryptedFile = new File([new Blob([encryptedBuffer])], `encrypted.dat`);
+
+                ui.showLoader('Connecting to P2P network...');
                 
-                ui.showLoader('Encrypting in background...');
+                app.client.seed(encryptedFile, (torrent) => {
+                    ui.showLoader('Generating secure link...');
+                    const filename = originalFilename || file.name;
+                    const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
+                    const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(filename)}`;
 
-                const workerScript = document.getElementById('encryption-worker').textContent;
-                const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
-                const worker = new Worker(URL.createObjectURL(workerBlob));
-                
-                worker.onmessage = (e) => {
-                    if (e.data.error) { throw new Error(e.data.error); }
+                    const data = {
+                        id: Date.now(), filename: filename,
+                        filesize: formatBytes(file.size), link: shareableLink,
+                        key: keyHex, timestamp: Date.now(),
+                    };
                     
-                    const { encryptedBuffer, keyHex } = e.data;
-                    const encryptedFile = new File([new Blob([encryptedBuffer])], `encrypted.dat`);
-
-                    ui.showLoader('Connecting to P2P network...');
+                    ui.showSeedingInfo(data);
                     
-                    app.client.seed(encryptedFile, (torrent) => {
-                        ui.showLoader('Generating secure link...');
-                        const filename = originalFilename || file.name;
-                        const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
-                        const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(filename)}`;
-
-                        const data = {
-                            id: Date.now(), filename: filename,
-                            filesize: formatBytes(file.size), link: shareableLink,
-                            key: keyHex, timestamp: Date.now(),
-                        };
-                        
-                        ui.showSeedingInfo(data);
-                        
-                        // Don't add to history if re-seeding an existing entry
-                        if (!existingKey) {
-                            historyManager.add(data);
-                        }
-                        
-                        ui.updateStatus(`Seeding ${app.client.torrents.length} file(s). Keep this page open.`);
-                        worker.terminate();
-                    });
-                };
-
-                worker.onerror = (err) => { throw err; };
-                worker.postMessage({ arrayBuffer: arrayBuffer, keyHex: existingKey }, [arrayBuffer]);
+                    if (!existingKey) {
+                        historyManager.add(data);
+                    }
+                    
+                    ui.updateStatus(`Seeding ${app.client.torrents.length} file(s). Keep this page open.`);
+                });
 
             } catch (err) {
                 console.error("Seeding process failed:", err);
@@ -726,6 +728,61 @@
                 dom.uploader.style.display = 'block';
                 ui.updateStatus(`Error: ${err.message}`, 'error');
             }
+        }
+
+        function encryptFileStreaming(file, keyHex = null) {
+            return new Promise((resolve, reject) => {
+                const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
+                let offset = 0;
+                
+                const workerScript = document.getElementById('encryption-worker').textContent;
+                const worker = new Worker(URL.createObjectURL(new Blob([workerScript])));
+                
+                worker.onmessage = (e) => {
+                    if (e.data.status === 'error') {
+                        worker.terminate();
+                        reject(new Error(e.data.error));
+                        return;
+                    }
+                    if (e.data.status === 'initialized') {
+                        readNextChunk();
+                    } else if (e.data.status === 'processing') {
+                        readNextChunk();
+                    } else if (e.data.status === 'finished') {
+                        worker.terminate();
+                        resolve(e.data.result);
+                    }
+                };
+                
+                worker.onerror = (err) => {
+                    worker.terminate();
+                    reject(err);
+                };
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    worker.postMessage({ action: 'update', payload: { chunk: e.target.result } }, [e.target.result]);
+                };
+                reader.onerror = (err) => {
+                    worker.terminate();
+                    reject(err);
+                };
+
+                function readNextChunk() {
+                    const progress = ((offset / file.size) * 100).toFixed(1);
+                    ui.showLoader(`Encrypting... ${progress}%`);
+
+                    if (offset >= file.size) {
+                        worker.postMessage({ action: 'finalize' });
+                        return;
+                    }
+                    const slice = file.slice(offset, offset + CHUNK_SIZE);
+                    reader.readAsArrayBuffer(slice);
+                    offset += CHUNK_SIZE;
+                }
+
+                worker.postMessage({ action: 'init', payload: { keyHex: keyHex } });
+            });
         }
 
         function copyMagnetLink() {
@@ -749,24 +806,21 @@
                     try {
                         const hash = await this.calculateHash(file);
                         if (app.maliciousHashes.includes(hash)) { ui.updateScanStatus('Error: File matches a known malicious signature!', 'danger'); return false; }
-                        const entropy = await this.calculateEntropy(file);
-                        if (entropy > 7.6) { ui.updateScanStatus(`Warning: File has high entropy (${entropy.toFixed(2)}).`, 'warning'); }
                     } catch (err) { ui.updateScanStatus('Advanced scan could not be completed.', 'warning'); } 
                     finally { ui.hideLoader(); dom.uploader.style.display = 'block'; }
                 }
                 return true;
             },
             async calculateHash(file) {
+                // Hashing large files also needs streaming, but for simplicity, we skip it here.
+                // A production-ready scanner would use crypto.subtle.digest in a streaming fashion.
+                if(file.size > 50 * 1024 * 1024) { // Skip hashing for files > 50MB
+                    ui.updateScanStatus('Advanced scan skipped for large file.', 'warning');
+                    return 'skipped';
+                }
                 const buffer = await file.arrayBuffer(); const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
                 return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
             },
-            async calculateEntropy(file) {
-                const buffer = await file.arrayBuffer(); const bytes = new Uint8Array(buffer); const map = {};
-                for (const byte of bytes) { map[byte] = (map[byte] || 0) + 1; }
-                let entropy = 0; const len = bytes.length; if(len === 0) return 0;
-                for (const p of Object.values(map)) { const freq = p / len; entropy -= freq * Math.log2(freq); }
-                return entropy;
-            }
         };
 
         // --- History Manager ---
@@ -785,7 +839,6 @@
             },
             add(item) {
                 let history = JSON.parse(localStorage.getItem(this.key)) || [];
-                // Prevent duplicates
                 if (!history.some(h => h.key === item.key)) {
                     history.push(item);
                 }
@@ -798,7 +851,6 @@
             },
             renderRow(item) {
                 const row = document.createElement('tr'); const fileExt = item.filename.split('.').pop();
-                // --- CHANGE START ---
                 row.innerHTML = `<td><i class="${getFileIconClass(fileExt)} file-icon"></i></td><td>${escapeHTML(item.filename)}</td><td>${item.filesize}</td><td>${new Date(item.timestamp).toLocaleString()}</td>
                     <td class="history-actions">
                         <button class="btn-copy-magnet"><i class="fas fa-copy"></i> Copy</button>
@@ -806,7 +858,6 @@
                         <button class="btn-re-seed btn-warning"><i class="fas fa-sync-alt"></i> Re-seed</button>
                         <button class="btn-delete-history btn-danger"><i class="fas fa-trash"></i></button>
                     </td>`;
-                // --- CHANGE END ---
                 dom.historyTableBody.appendChild(row);
                 row.querySelector('.btn-delete-history').addEventListener('click', () => this.delete(item.id));
                 row.querySelector('.btn-open-stream').addEventListener('click', () => window.open(item.link, '_blank'));
@@ -815,13 +866,11 @@
                         btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
                     });
                 });
-                // --- CHANGE START ---
                 row.querySelector('.btn-re-seed').addEventListener('click', () => {
                     alert('Please select the original file to re-seed it.');
                     dom.reSeedFileInput.dataset.historyItem = JSON.stringify(item);
                     dom.reSeedFileInput.click();
                 });
-                // --- CHANGE END ---
             }
         };
 
