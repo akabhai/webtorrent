@@ -403,321 +403,83 @@
     </div>
 
     <audio id="click-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2d82914c68.mp3" preload="auto"></audio>
-
-    <!-- INLINE WEB WORKER FOR STREAMING ENCRYPTION -->
+    
+    <!-- ADVANCED ENCRYPTION WORKER FOR TRUE STREAMING -->
     <script id="encryption-worker" type="javascript/worker">
         self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
-
         let aesEncryptor = null;
-        let key = null;
-        let iv = null;
-        let combinedChunks = null;
-
-        self.onmessage = function(e) {
-            const { action, payload } = e.data;
-
-            try {
-                switch (action) {
-                    case 'init':
-                        key = payload.keyHex ? CryptoJS.enc.Hex.parse(payload.keyHex) : CryptoJS.lib.WordArray.random(32);
-                        iv = CryptoJS.lib.WordArray.random(16);
-                        aesEncryptor = CryptoJS.algo.AES.createEncryptor(key, { iv: iv });
-                        combinedChunks = CryptoJS.lib.WordArray.create();
-                        self.postMessage({ status: 'initialized' });
-                        break;
-
-                    case 'update':
-                        const wordArrayChunk = CryptoJS.lib.WordArray.create(payload.chunk);
-                        const encryptedChunk = aesEncryptor.process(wordArrayChunk);
-                        if (encryptedChunk && encryptedChunk.sigBytes > 0) {
-                            combinedChunks.concat(encryptedChunk);
-                        }
-                        self.postMessage({ status: 'processing' });
-                        break;
-
-                    case 'finalize':
-                        const finalChunk = aesEncryptor.finalize();
-                        if (finalChunk && finalChunk.sigBytes > 0) {
-                            combinedChunks.concat(finalChunk);
-                        }
-                        
-                        const finalCiphertext = iv.concat(combinedChunks);
-
-                        const l = finalCiphertext.sigBytes;
-                        const u8_array = new Uint8Array(l);
-                        for (let i = 0; i < l; i++) {
-                            u8_array[i] = (finalCiphertext.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
-                        }
-                        const encryptedBuffer = u8_array.buffer;
-
-                        self.postMessage({
-                            status: 'finished',
-                            result: {
-                                encryptedBuffer: encryptedBuffer,
-                                keyHex: key.toString(CryptoJS.enc.Hex)
-                            }
-                        }, [encryptedBuffer]);
-                        break;
-                }
-            } catch (error) {
-                self.postMessage({ status: 'error', error: error.message });
-            }
-        };
+        function wordToUint8(wordArray) { const l = wordArray.sigBytes; const u8_array = new Uint8Array(l); for (let i = 0; i < l; i++) { u8_array[i] = (wordArray.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff; } return u8_array; }
+        self.onmessage = function(e) { const { action, payload } = e.data; try { switch (action) { case 'init': const key = payload.keyHex ? CryptoJS.enc.Hex.parse(payload.keyHex) : CryptoJS.lib.WordArray.random(32); const iv = CryptoJS.lib.WordArray.random(16); aesEncryptor = CryptoJS.algo.AES.createEncryptor(key, { iv: iv }); const iv_u8 = wordToUint8(iv); self.postMessage({ status: 'initialized', keyHex: key.toString(CryptoJS.enc.Hex), iv: iv_u8.buffer }, [iv_u8.buffer]); break; case 'chunk': const wordArrayChunk = CryptoJS.lib.WordArray.create(payload.chunk); const encryptedChunk = aesEncryptor.process(wordArrayChunk); if (encryptedChunk && encryptedChunk.sigBytes > 0) { const encrypted_u8 = wordToUint8(encryptedChunk); self.postMessage({ status: 'chunk_encrypted', chunk: encrypted_u8.buffer }, [encrypted_u8.buffer]); } else { self.postMessage({ status: 'chunk_encrypted', chunk: null }); } break; case 'finalize': const finalChunk = aesEncryptor.finalize(); if (finalChunk && finalChunk.sigBytes > 0) { const final_u8 = wordToUint8(finalChunk); self.postMessage({ status: 'chunk_encrypted', chunk: final_u8.buffer }, [final_u8.buffer]); } self.postMessage({ status: 'finished' }); break; } } catch (error) { self.postMessage({ status: 'error', error: error.message }); } };
     </script>
 
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- App State & Config ---
-        const rtcConfig = {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:global.stun.twilio.com:3478" },
-            { urls: "stun:stun.services.mozilla.com" }
-          ],
-          iceTransportPolicy: "all",
-          bundlePolicy: "max-bundle"
-        };
-        const clientOptions = {
-            tracker: {
-                rtcConfig: rtcConfig
-            },
-            maxConns: 100 
-        };
-        const app = {
-            client: new WebTorrent(clientOptions),
-            selectedFile: null,
-            hackerMode: false,
-            maliciousHashes: ['275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f'],
-            allowedFormats: ['mp4', 'mkv', 'webm', 'mp3', 'flac', 'png', 'jpg', 'jpeg', 'pdf', 'txt', 'zip'],
-            blockedFormats: ['exe', 'apk', 'bat', 'scr', 'com', 'jar', 'dmg', 'iso', 'msi'],
-        };
-
-        // --- DOM Elements ---
-        const dom = {
-            themeToggle: document.getElementById('theme-toggle'),
-            hackerToggle: document.getElementById('hacker-toggle'),
-            dropZone: document.getElementById('drop-zone'),
-            fileInput: document.getElementById('file-input'),
-            reSeedFileInput: document.getElementById('re-seed-file-input'),
-            fileNameDisplay: document.getElementById('file-name'),
-            shareButton: document.getElementById('share-button'),
-            advancedScannerToggle: document.getElementById('advanced-scanner-toggle'),
-            scanStatus: document.getElementById('scan-status'),
-            status: document.getElementById('status'),
-            uploader: document.getElementById('uploader'),
-            loader: document.getElementById('loader'),
-            loaderText: document.getElementById('loader-text'),
-            seedingInfo: document.getElementById('seeding-info'),
-            resultFilename: document.getElementById('result-filename'),
-            resultFilesize: document.getElementById('result-filesize'),
-            seedingStatus: document.getElementById('seeding-status'), 
-            magnetLink: document.getElementById('magnet-link'),
-            copyButton: document.getElementById('copy-button'),
-            openStreamButton: document.getElementById('open-stream-button'),
-            uploadMoreButton: document.getElementById('upload-more-button'),
-            qrcodeContainer: document.getElementById('qrcode'),
-            historyContainer: document.getElementById('history-container'),
-            welcomeMessage: document.getElementById('welcome-message'),
-            historyTable: document.getElementById('history-table'),
-            historyTableBody: document.querySelector('#history-table tbody'),
-            matrixCanvas: document.getElementById('matrix-canvas'),
-            clickSound: document.getElementById('click-sound'),
-        };
-        
-        // --- Helper function to detect mobile devices ---
+        const rtcConfig = { iceServers: [ { urls: "stun:stun.l.google.com:19302" }, { urls: "stun:global.stun.twilio.com:3478" }, { urls: "stun:stun.services.mozilla.com" } ], iceTransportPolicy: "all", bundlePolicy: "max-bundle" };
+        const clientOptions = { tracker: { rtcConfig: rtcConfig }, maxConns: 100 };
+        const app = { client: new WebTorrent(clientOptions), selectedFile: null, hackerMode: false, maliciousHashes: ['275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f'], allowedFormats: ['mp4', 'mkv', 'webm', 'mp3', 'flac', 'png', 'jpg', 'jpeg', 'pdf', 'txt', 'zip'], blockedFormats: ['exe', 'apk', 'bat', 'scr', 'com', 'jar', 'dmg', 'iso', 'msi'] };
+        const dom = { themeToggle: document.getElementById('theme-toggle'), hackerToggle: document.getElementById('hacker-toggle'), dropZone: document.getElementById('drop-zone'), fileInput: document.getElementById('file-input'), reSeedFileInput: document.getElementById('re-seed-file-input'), fileNameDisplay: document.getElementById('file-name'), shareButton: document.getElementById('share-button'), advancedScannerToggle: document.getElementById('advanced-scanner-toggle'), scanStatus: document.getElementById('scan-status'), status: document.getElementById('status'), uploader: document.getElementById('uploader'), loader: document.getElementById('loader'), loaderText: document.getElementById('loader-text'), seedingInfo: document.getElementById('seeding-info'), resultFilename: document.getElementById('result-filename'), resultFilesize: document.getElementById('result-filesize'), seedingStatus: document.getElementById('seeding-status'), magnetLink: document.getElementById('magnet-link'), copyButton: document.getElementById('copy-button'), openStreamButton: document.getElementById('open-stream-button'), uploadMoreButton: document.getElementById('upload-more-button'), qrcodeContainer: document.getElementById('qrcode'), historyContainer: document.getElementById('history-container'), welcomeMessage: document.getElementById('welcome-message'), historyTable: document.getElementById('history-table'), historyTableBody: document.querySelector('#history-table tbody'), matrixCanvas: document.getElementById('matrix-canvas'), clickSound: document.getElementById('click-sound') };
         const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        // --- UI & THEME ---
+        
         const ui = {
-            init() {
-                const savedTheme = localStorage.getItem('theme');
-                if (savedTheme === 'dark') {
-                    document.body.classList.add('dark-mode');
-                    dom.themeToggle.checked = true;
-                }
-                const savedHacker = localStorage.getItem('hackerMode');
-                if (savedHacker === 'true') {
-                    app.hackerMode = true;
-                    dom.hackerToggle.checked = true;
-                    this.toggleHackerMode(true, true);
-                }
-
-                dom.themeToggle.addEventListener('change', () => this.toggleTheme());
-                dom.hackerToggle.addEventListener('change', () => this.toggleHackerMode(dom.hackerToggle.checked));
-                
-                dom.dropZone.addEventListener('click', () => dom.fileInput.click());
-                dom.dropZone.addEventListener('dragover', e => { e.preventDefault(); dom.dropZone.classList.add('dragover'); });
-                dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover'));
-                dom.dropZone.addEventListener('drop', e => {
-                    e.preventDefault();
-                    dom.dropZone.classList.remove('dragover');
-                    if (e.dataTransfer.files.length) {
-                        dom.fileInput.files = e.dataTransfer.files;
-                        handleFileSelect({ target: dom.fileInput });
-                    }
-                });
-            },
-            toggleTheme() {
-                this.playSound(dom.clickSound);
-                document.body.classList.toggle('dark-mode');
-                localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
-            },
-            toggleHackerMode(enable, silent = false) {
-                if (!silent) this.playSound(dom.clickSound);
-                app.hackerMode = enable;
-                document.body.classList.toggle('hacker-mode', enable);
-                localStorage.setItem('hackerMode', enable);
-                if (enable) matrix.start(); else matrix.stop();
-            },
-            showLoader(text) {
-                if (dom.loaderText) dom.loaderText.textContent = text;
-                if (dom.loader) dom.loader.style.display = 'flex';
-                if (dom.uploader) dom.uploader.style.display = 'none';
-                if (dom.seedingInfo) dom.seedingInfo.style.display = 'none';
-            },
-            hideLoader() {
-                if (dom.loader) dom.loader.style.display = 'none';
-            },
-            showSeedingInfo(data) {
-                if (dom.resultFilename) dom.resultFilename.textContent = data.filename;
-                if (dom.resultFilesize) dom.resultFilesize.textContent = data.filesize;
-                if (dom.magnetLink) dom.magnetLink.value = data.link;
-                if (dom.openStreamButton) dom.openStreamButton.onclick = () => window.open(data.link, '_blank');
-                
-                if (dom.qrcodeContainer) {
-                    dom.qrcodeContainer.innerHTML = "";
-                    new QRCode(dom.qrcodeContainer, { text: data.link, width: 128, height: 128 });
-                }
-                
-                dom.seedingStatus.innerHTML = `Seeding to P2P network. <strong style="color: var(--warning-color);">Keep this page open to keep the file alive!</strong> <span style="color: var(--success-color);">Encrypted ✔</span>`;
-                
-                this.hideLoader();
-                if (dom.seedingInfo) dom.seedingInfo.style.display = 'block';
-            },
-            updateStatus(message, type = 'info') {
-                if (!dom.status) return;
-                dom.status.textContent = message;
-                dom.status.style.color = type === 'error' ? 'var(--danger-color)' : 'var(--text-color)';
-            },
-            updateScanStatus(message, type = 'info') {
-                if (!dom.scanStatus) return;
-                dom.scanStatus.textContent = message;
-                dom.scanStatus.className = type;
-            },
-            playSound(sound) {
-                if (app.hackerMode && sound) {
-                    sound.currentTime = 0;
-                    sound.play().catch(e => console.warn("Audio play failed.", e));
-                }
-            }
+            init() { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { document.body.classList.add('dark-mode'); dom.themeToggle.checked = true; } const savedHacker = localStorage.getItem('hackerMode'); if (savedHacker === 'true') { app.hackerMode = true; dom.hackerToggle.checked = true; this.toggleHackerMode(true, true); } dom.themeToggle.addEventListener('change', () => this.toggleTheme()); dom.hackerToggle.addEventListener('change', () => this.toggleHackerMode(dom.hackerToggle.checked)); dom.dropZone.addEventListener('click', () => dom.fileInput.click()); dom.dropZone.addEventListener('dragover', e => { e.preventDefault(); dom.dropZone.classList.add('dragover'); }); dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover')); dom.dropZone.addEventListener('drop', e => { e.preventDefault(); dom.dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) { dom.fileInput.files = e.dataTransfer.files; handleFileSelect({ target: dom.fileInput }); } }); },
+            toggleTheme() { this.playSound(dom.clickSound); document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); },
+            toggleHackerMode(enable, silent = false) { if (!silent) this.playSound(dom.clickSound); app.hackerMode = enable; document.body.classList.toggle('hacker-mode', enable); localStorage.setItem('hackerMode', enable); if (enable) matrix.start(); else matrix.stop(); },
+            showLoader(text) { if (dom.loaderText) dom.loaderText.textContent = text; if (dom.loader) dom.loader.style.display = 'flex'; if (dom.uploader) dom.uploader.style.display = 'none'; if (dom.seedingInfo) dom.seedingInfo.style.display = 'none'; },
+            hideLoader() { if (dom.loader) dom.loader.style.display = 'none'; },
+            showSeedingInfo(data) { if (dom.resultFilename) dom.resultFilename.textContent = data.filename; if (dom.resultFilesize) dom.resultFilesize.textContent = data.filesize; if (dom.magnetLink) dom.magnetLink.value = data.link; if (dom.openStreamButton) dom.openStreamButton.onclick = () => window.open(data.link, '_blank'); if (dom.qrcodeContainer) { dom.qrcodeContainer.innerHTML = ""; new QRCode(dom.qrcodeContainer, { text: data.link, width: 128, height: 128 }); } dom.seedingStatus.innerHTML = `Seeding to P2P network. <strong style="color: var(--warning-color);">Keep this page open to keep the file alive!</strong> <span style="color: var(--success-color);">Encrypted ✔</span>`; this.hideLoader(); if (dom.seedingInfo) dom.seedingInfo.style.display = 'block'; },
+            updateStatus(message, type = 'info') { if (!dom.status) return; dom.status.textContent = message; dom.status.style.color = type === 'error' ? 'var(--danger-color)' : 'var(--text-color)'; },
+            updateScanStatus(message, type = 'info') { if (!dom.scanStatus) return; dom.scanStatus.textContent = message; dom.scanStatus.className = type; },
+            playSound(sound) { if (app.hackerMode && sound) { sound.currentTime = 0; sound.play().catch(e => console.warn("Audio play failed.", e)); } }
         };
-
-        // --- Matrix Effect for Hacker Mode ---
-        const matrix = {
-            intervalId: null,
-            start() {
-                const canvas = dom.matrixCanvas; if (!canvas) return;
-                const ctx = canvas.getContext('2d');
-                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}';
-                const fontSize = 14; const columns = canvas.width / fontSize;
-                const drops = Array(Math.floor(columns)).fill(1);
-                function draw() {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.fillStyle = '#0f0'; ctx.font = `${fontSize}px monospace`;
-                    for (let i = 0; i < drops.length; i++) {
-                        const text = letters[Math.floor(Math.random() * letters.length)];
-                        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                        drops[i]++;
-                    }
-                }
-                this.intervalId = setInterval(draw, 33);
-            },
-            stop() {
-                if (this.intervalId) {
-                    clearInterval(this.intervalId); this.intervalId = null;
-                    const canvas = dom.matrixCanvas; if(canvas){const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);}
-                }
-            }
-        };
-
-        // --- File Handling & Seeding ---
+        const matrix = { intervalId: null, start() { const canvas = dom.matrixCanvas; if (!canvas) return; const ctx = canvas.getContext('2d'); canvas.width = window.innerWidth; canvas.height = window.innerHeight; const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}'; const fontSize = 14; const columns = canvas.width / fontSize; const drops = Array(Math.floor(columns)).fill(1); function draw() { ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#0f0'; ctx.font = `${fontSize}px monospace`; for (let i = 0; i < drops.length; i++) { const text = letters[Math.floor(Math.random() * letters.length)]; ctx.fillText(text, i * fontSize, drops[i] * fontSize); if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0; drops[i]++; } } this.intervalId = setInterval(draw, 33); }, stop() { if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; const canvas = dom.matrixCanvas; if(canvas){const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);} } } };
+        
         dom.fileInput.addEventListener('change', handleFileSelect);
         dom.shareButton.addEventListener('click', () => startSeeding());
         dom.copyButton.addEventListener('click', copyMagnetLink);
         dom.uploadMoreButton.addEventListener('click', resetUploaderUI);
-        dom.reSeedFileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            const historyItem = JSON.parse(event.target.dataset.historyItem);
-            if (file && historyItem) {
-                startSeeding(file, historyItem.key, historyItem.filename);
-            }
-        });
+        dom.reSeedFileInput.addEventListener('change', (event) => { const file = event.target.files[0]; const historyItem = JSON.parse(event.target.dataset.historyItem); if (file && historyItem) { startSeeding(file, historyItem.key, historyItem.filename); } });
         
-        function resetUploaderUI() {
-            ui.playSound(dom.clickSound);
-            dom.seedingInfo.style.display = 'none';
-            dom.uploader.style.display = 'block';
-            app.selectedFile = null;
-            dom.fileInput.value = '';
-            dom.fileNameDisplay.textContent = '';
-            dom.shareButton.disabled = true;
-            dom.scanStatus.textContent = '';
-            ui.updateStatus(`Seeding ${app.client.torrents.length} file(s) in the background. Ready for next upload.`);
-        }
+        function resetUploaderUI() { ui.playSound(dom.clickSound); dom.seedingInfo.style.display = 'none'; dom.uploader.style.display = 'block'; app.selectedFile = null; dom.fileInput.value = ''; dom.fileNameDisplay.textContent = ''; dom.shareButton.disabled = true; dom.scanStatus.textContent = ''; ui.updateStatus(`Seeding ${app.client.torrents.length} file(s) in the background. Ready for next upload.`); }
         
         async function handleFileSelect(event) {
             ui.playSound(dom.clickSound);
             app.selectedFile = event.target.files[0];
             if (!app.selectedFile) return;
-
-            // Check file size on mobile devices
-            if (isMobile() && app.selectedFile.size > 200 * 1024 * 1024) { // 200 MB limit
-                ui.updateScanStatus('File is too large for mobile upload. Please use a desktop.', 'danger');
-                dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
-                dom.shareButton.disabled = true;
-                return;
-            }
-
-            dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
-            ui.updateScanStatus('Scanning file...', 'info');
-            dom.shareButton.disabled = true;
-
-            const isSafe = await fileScanner.scan(app.selectedFile);
-
-            if (isSafe) {
-                ui.updateScanStatus('File seems safe ✔', 'success');
-                dom.shareButton.disabled = false;
+            const mobileSizeLimit = 200 * 1024 * 1024;
+            if (isMobile() && app.selectedFile.size > mobileSizeLimit) {
+                ui.updateScanStatus(`File is > ${formatBytes(mobileSizeLimit)}. Mobile uploads may be unstable.`, 'warning');
             } else {
-                dom.fileNameDisplay.textContent = '';
-                app.selectedFile = null;
-                dom.fileInput.value = '';
-                dom.shareButton.disabled = true;
+                 ui.updateScanStatus('');
             }
+            dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
+            dom.shareButton.disabled = false;
         }
         
         async function startSeeding(fileToSeed = null, existingKey = null, originalFilename = null) {
             const file = fileToSeed || app.selectedFile;
             if (!file) return;
+            if (!fileToSeed) {
+                 const isSafe = await fileScanner.scan(file);
+                 if (!isSafe) { ui.updateScanStatus('File rejected by scanner.', 'danger'); return; }
+            }
             ui.playSound(dom.clickSound);
             ui.showLoader('Initializing encryption...');
-
             try {
-                const encryptedResult = await encryptFileStreaming(file, existingKey);
-                const { encryptedBuffer, keyHex } = encryptedResult;
-                const encryptedFile = new File([new Blob([encryptedBuffer])], `encrypted.dat`);
-
+                const { encryptedFileBlob, keyHex } = await encryptFileStreaming(file, existingKey);
+                const encryptedFile = new File([encryptedFileBlob], `encrypted.dat`);
                 ui.showLoader('Connecting to P2P network...');
                 
+                // --- NEW/UPDATED TRACKER LIST ---
                 const trackerOpts = {
                     announce: [
-                        'wss://tracker.webtorrent.dev',
                         'wss://tracker.openwebtorrent.com',
-                        'wss://tracker.files.fm:7073/announce',
-                        'wss://tracker.fastcast.nz',
+                        'wss://ws-tracker.webtorrent.io',
+                        'wss://tracker.peer.ooo',
+                        'wss://tracker.webtorrent.dev', // Kept as a fallback
+                        'wss://tracker.files.fm:7073/announce', // Kept as a fallback
+                        'wss://tracker.btorrent.xyz', // Kept as a fallback
                     ]
                 };
                 
@@ -726,22 +488,11 @@
                     const filename = originalFilename || file.name;
                     const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
                     const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(filename)}`;
-
-                    const data = {
-                        id: Date.now(), filename: filename,
-                        filesize: formatBytes(file.size), link: shareableLink,
-                        key: keyHex, timestamp: Date.now(),
-                    };
-                    
+                    const data = { id: Date.now(), filename: filename, filesize: formatBytes(file.size), link: shareableLink, key: keyHex, timestamp: Date.now() };
                     ui.showSeedingInfo(data);
-                    
-                    if (!existingKey) {
-                        historyManager.add(data);
-                    }
-                    
+                    if (!existingKey) { historyManager.add(data); }
                     ui.updateStatus(`Seeding ${app.client.torrents.length} file(s). Keep this page open.`);
                 });
-
             } catch (err) {
                 console.error("Seeding process failed:", err);
                 ui.hideLoader();
@@ -752,73 +503,52 @@
 
         function encryptFileStreaming(file, keyHex = null) {
             return new Promise((resolve, reject) => {
-                // Use smaller chunks and a delay on mobile to prevent memory crashes
-                const CHUNK_SIZE = isMobile() ? 1 * 1024 * 1024 : 4 * 1024 * 1024; // 1MB for mobile, 4MB for desktop
-                const PROCESSING_DELAY = isMobile() ? 10 : 0; // 10ms delay for mobile, 0 for desktop
-                
+                const CHUNK_SIZE = isMobile() ? 1 * 1024 * 1024 : 4 * 1024 * 1024;
+                const PROCESSING_DELAY = isMobile() ? 10 : 0;
                 let offset = 0;
+                let encryptedChunks = [];
+                let resolvedKeyHex = null;
                 const worker = new Worker(URL.createObjectURL(new Blob([document.getElementById('encryption-worker').textContent])));
                 
                 worker.onmessage = (e) => {
-                    if (e.data.status === 'error') {
-                        worker.terminate();
-                        return reject(new Error(e.data.error));
-                    }
+                    if (e.data.status === 'error') { worker.terminate(); return reject(new Error(e.data.error)); }
                     if (e.data.status === 'initialized') {
+                        resolvedKeyHex = e.data.keyHex;
+                        encryptedChunks.push(e.data.iv);
                         readNextChunk();
-                    } else if (e.data.status === 'processing') {
-                        setTimeout(readNextChunk, PROCESSING_DELAY); // Give the browser a breather
+                    } else if (e.data.status === 'chunk_encrypted') {
+                        if (e.data.chunk) { encryptedChunks.push(e.data.chunk); }
+                        setTimeout(readNextChunk, PROCESSING_DELAY);
                     } else if (e.data.status === 'finished') {
                         worker.terminate();
-                        resolve(e.data.result);
+                        const finalBlob = new Blob(encryptedChunks);
+                        resolve({ encryptedFileBlob: finalBlob, keyHex: resolvedKeyHex });
                     }
                 };
-                
-                worker.onerror = (err) => {
-                    worker.terminate();
-                    reject(err);
-                };
-
+                worker.onerror = (err) => { worker.terminate(); reject(err); };
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    worker.postMessage({ action: 'update', payload: { chunk: e.target.result } }, [e.target.result]);
-                };
-                reader.onerror = (err) => {
-                    worker.terminate();
-                    reject(err);
-                };
-
+                reader.onload = (e) => { worker.postMessage({ action: 'chunk', payload: { chunk: e.target.result } }, [e.target.result]); };
+                reader.onerror = (err) => { worker.terminate(); reject(err); };
                 function readNextChunk() {
-                    if (offset >= file.size) {
-                        worker.postMessage({ action: 'finalize' });
-                        return;
-                    }
+                    if (offset >= file.size) { worker.postMessage({ action: 'finalize' }); return; }
                     const progress = ((offset / file.size) * 100).toFixed(1);
                     ui.showLoader(`Encrypting... ${progress}%`);
                     const slice = file.slice(offset, offset + CHUNK_SIZE);
                     reader.readAsArrayBuffer(slice);
                     offset += CHUNK_SIZE;
                 }
-
                 worker.postMessage({ action: 'init', payload: { keyHex: keyHex } });
             });
         }
 
-        function copyMagnetLink() {
-            ui.playSound(dom.clickSound);
-            navigator.clipboard.writeText(dom.magnetLink.value).then(() => {
-                dom.copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                setTimeout(() => dom.copyButton.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
-            });
-        }
-
+        function copyMagnetLink() { ui.playSound(dom.clickSound); navigator.clipboard.writeText(dom.magnetLink.value).then(() => { dom.copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!'; setTimeout(() => dom.copyButton.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000); }); }
+        
         const fileScanner = {
             async scan(file) {
                 const extension = file.name.split('.').pop().toLowerCase();
                 if (app.blockedFormats.includes(extension)) { ui.updateScanStatus(`Error: File format ".${extension}" is disallowed.`, 'danger'); return false; }
                 if (!app.allowedFormats.includes(extension)) { ui.updateScanStatus(`Warning: Format ".${extension}" is not recommended.`, 'warning'); }
                 if (/\.(pdf|jpg|png|mp4|txt)\.exe$/.test(file.name.toLowerCase())) { ui.updateScanStatus(`Error: Suspicious double extension detected!`, 'danger'); return false; }
-
                 if (dom.advancedScannerToggle.checked) {
                     ui.showLoader('Performing advanced scan...');
                     try {
@@ -830,10 +560,7 @@
                 return true;
             },
             async calculateHash(file) {
-                if(file.size > 50 * 1024 * 1024) { 
-                    ui.updateScanStatus('Advanced scan skipped for large file.', 'warning');
-                    return 'skipped';
-                }
+                if(file.size > 50 * 1024 * 1024) { ui.updateScanStatus('Advanced scan skipped for large file.', 'warning'); return 'skipped'; }
                 const buffer = await file.arrayBuffer(); const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
                 return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
             },
@@ -841,29 +568,9 @@
 
         const historyManager = {
             key: 'webtorrent-history',
-            load() {
-                let history = JSON.parse(localStorage.getItem(this.key)) || [];
-                const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-                history = history.filter(item => item.timestamp > thirtyDaysAgo);
-                localStorage.setItem(this.key, JSON.stringify(history));
-                if (history.length > 0) {
-                    dom.welcomeMessage.style.display = 'none'; dom.historyTable.style.display = 'table';
-                    dom.historyTableBody.innerHTML = '';
-                    history.sort((a,b) => b.timestamp - a.timestamp).forEach(item => this.renderRow(item));
-                } else { dom.welcomeMessage.style.display = 'block'; dom.historyTable.style.display = 'none'; }
-            },
-            add(item) {
-                let history = JSON.parse(localStorage.getItem(this.key)) || [];
-                if (!history.some(h => h.key === item.key)) {
-                    history.push(item);
-                }
-                localStorage.setItem(this.key, JSON.stringify(history)); 
-                this.load();
-            },
-            delete(id) {
-                ui.playSound(dom.clickSound); let history = JSON.parse(localStorage.getItem(this.key)) || [];
-                history = history.filter(item => item.id !== id); localStorage.setItem(this.key, JSON.stringify(history)); this.load();
-            },
+            load() { let history = JSON.parse(localStorage.getItem(this.key)) || []; const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000; history = history.filter(item => item.timestamp > thirtyDaysAgo); localStorage.setItem(this.key, JSON.stringify(history)); if (history.length > 0) { dom.welcomeMessage.style.display = 'none'; dom.historyTable.style.display = 'table'; dom.historyTableBody.innerHTML = ''; history.sort((a,b) => b.timestamp - a.timestamp).forEach(item => this.renderRow(item)); } else { dom.welcomeMessage.style.display = 'block'; dom.historyTable.style.display = 'none'; } },
+            add(item) { let history = JSON.parse(localStorage.getItem(this.key)) || []; if (!history.some(h => h.key === item.key)) { history.push(item); } localStorage.setItem(this.key, JSON.stringify(history)); this.load(); },
+            delete(id) { ui.playSound(dom.clickSound); let history = JSON.parse(localStorage.getItem(this.key)) || []; history = history.filter(item => item.id !== id); localStorage.setItem(this.key, JSON.stringify(history)); this.load(); },
             renderRow(item) {
                 const row = document.createElement('tr'); const fileExt = item.filename.split('.').pop();
                 row.innerHTML = `<td><i class="${getFileIconClass(fileExt)} file-icon"></i></td><td>${escapeHTML(item.filename)}</td><td>${item.filesize}</td><td>${new Date(item.timestamp).toLocaleString()}</td>
@@ -876,25 +583,15 @@
                 dom.historyTableBody.appendChild(row);
                 row.querySelector('.btn-delete-history').addEventListener('click', () => this.delete(item.id));
                 row.querySelector('.btn-open-stream').addEventListener('click', () => window.open(item.link, '_blank'));
-                row.querySelector('.btn-copy-magnet').addEventListener('click', (e) => {
-                    const btn = e.currentTarget; navigator.clipboard.writeText(item.link).then(() => {
-                        btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
-                    });
-                });
-                row.querySelector('.btn-re-seed').addEventListener('click', () => {
-                    alert('Please select the original file to re-seed it.');
-                    dom.reSeedFileInput.dataset.historyItem = JSON.stringify(item);
-                    dom.reSeedFileInput.click();
-                });
+                row.querySelector('.btn-copy-magnet').addEventListener('click', (e) => { const btn = e.currentTarget; navigator.clipboard.writeText(item.link).then(() => { btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000); }); });
+                row.querySelector('.btn-re-seed').addEventListener('click', () => { alert('Please select the original file to re-seed it.'); dom.reSeedFileInput.dataset.historyItem = JSON.stringify(item); dom.reSeedFileInput.click(); });
             }
         };
 
-        // --- Utility Functions ---
         function formatBytes(bytes, d=2){if(!+bytes)return'0 Bytes';const k=1024,i=Math.floor(Math.log(bytes)/Math.log(k));return`${parseFloat((bytes/Math.pow(k,i)).toFixed(d))} ${['Bytes','KB','MB','GB','TB'][i]}`}
         function getFileIconClass(ext){const i={'mp4':'fas fa-file-video','webm':'fas fa-file-video','mkv':'fas fa-file-video','mp3':'fas fa-file-audio','flac':'fas fa-file-audio','png':'fas fa-file-image','jpg':'fas fa-file-image','jpeg':'fas fa-file-image','pdf':'fas fa-file-pdf','zip':'fas fa-file-archive','txt':'fas fa-file-alt'};return i[ext.toLowerCase()]||'fas fa-file'}
         function escapeHTML(str){return str.replace(/[&<>'"]/g,t=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t))}
-
-        // --- App Initialization ---
+        
         ui.init();
         historyManager.load();
     });
