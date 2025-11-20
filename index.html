@@ -1,11 +1,11 @@
-
+--- START OF FILE index.html ---
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Files Sharer</title>
+    <title>P2P Secure WebTorrent File Sharer</title>
     
     <!-- CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
@@ -323,8 +323,8 @@
 
     <div class="container">
         <header>
-            <h1 class="animated-header">Files Sharer</h1>
-            <p>BY ANIVERSE</p>
+            <h1 class="animated-header">P2P Secure WebTorrent File Sharer</h1>
+            <p>GitHub Pages Edition</p>
         </header>
 
         <div class="controls">
@@ -524,6 +524,9 @@
             matrixCanvas: document.getElementById('matrix-canvas'),
             clickSound: document.getElementById('click-sound'),
         };
+        
+        // --- Helper function to detect mobile devices ---
+        const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
         // --- UI & THEME ---
         const ui = {
@@ -671,6 +674,14 @@
             app.selectedFile = event.target.files[0];
             if (!app.selectedFile) return;
 
+            // Check file size on mobile devices
+            if (isMobile() && app.selectedFile.size > 200 * 1024 * 1024) { // 200 MB limit
+                ui.updateScanStatus('File is too large for mobile upload. Please use a desktop.', 'danger');
+                dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
+                dom.shareButton.disabled = true;
+                return;
+            }
+
             dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
             ui.updateScanStatus('Scanning file...', 'info');
             dom.shareButton.disabled = true;
@@ -701,7 +712,16 @@
 
                 ui.showLoader('Connecting to P2P network...');
                 
-                app.client.seed(encryptedFile, (torrent) => {
+                const trackerOpts = {
+                    announce: [
+                        'wss://tracker.webtorrent.dev',
+                        'wss://tracker.openwebtorrent.com',
+                        'wss://tracker.files.fm:7073/announce',
+                        'wss://tracker.fastcast.nz',
+                    ]
+                };
+                
+                app.client.seed(encryptedFile, trackerOpts, (torrent) => {
                     ui.showLoader('Generating secure link...');
                     const filename = originalFilename || file.name;
                     const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
@@ -732,22 +752,22 @@
 
         function encryptFileStreaming(file, keyHex = null) {
             return new Promise((resolve, reject) => {
-                const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
-                let offset = 0;
+                // Use smaller chunks and a delay on mobile to prevent memory crashes
+                const CHUNK_SIZE = isMobile() ? 1 * 1024 * 1024 : 4 * 1024 * 1024; // 1MB for mobile, 4MB for desktop
+                const PROCESSING_DELAY = isMobile() ? 10 : 0; // 10ms delay for mobile, 0 for desktop
                 
-                const workerScript = document.getElementById('encryption-worker').textContent;
-                const worker = new Worker(URL.createObjectURL(new Blob([workerScript])));
+                let offset = 0;
+                const worker = new Worker(URL.createObjectURL(new Blob([document.getElementById('encryption-worker').textContent])));
                 
                 worker.onmessage = (e) => {
                     if (e.data.status === 'error') {
                         worker.terminate();
-                        reject(new Error(e.data.error));
-                        return;
+                        return reject(new Error(e.data.error));
                     }
                     if (e.data.status === 'initialized') {
                         readNextChunk();
                     } else if (e.data.status === 'processing') {
-                        readNextChunk();
+                        setTimeout(readNextChunk, PROCESSING_DELAY); // Give the browser a breather
                     } else if (e.data.status === 'finished') {
                         worker.terminate();
                         resolve(e.data.result);
@@ -769,13 +789,12 @@
                 };
 
                 function readNextChunk() {
-                    const progress = ((offset / file.size) * 100).toFixed(1);
-                    ui.showLoader(`Encrypting... ${progress}%`);
-
                     if (offset >= file.size) {
                         worker.postMessage({ action: 'finalize' });
                         return;
                     }
+                    const progress = ((offset / file.size) * 100).toFixed(1);
+                    ui.showLoader(`Encrypting... ${progress}%`);
                     const slice = file.slice(offset, offset + CHUNK_SIZE);
                     reader.readAsArrayBuffer(slice);
                     offset += CHUNK_SIZE;
@@ -793,7 +812,6 @@
             });
         }
 
-        // --- File Scanner ---
         const fileScanner = {
             async scan(file) {
                 const extension = file.name.split('.').pop().toLowerCase();
@@ -812,9 +830,7 @@
                 return true;
             },
             async calculateHash(file) {
-                // Hashing large files also needs streaming, but for simplicity, we skip it here.
-                // A production-ready scanner would use crypto.subtle.digest in a streaming fashion.
-                if(file.size > 50 * 1024 * 1024) { // Skip hashing for files > 50MB
+                if(file.size > 50 * 1024 * 1024) { 
                     ui.updateScanStatus('Advanced scan skipped for large file.', 'warning');
                     return 'skipped';
                 }
@@ -823,7 +839,6 @@
             },
         };
 
-        // --- History Manager ---
         const historyManager = {
             key: 'webtorrent-history',
             load() {
