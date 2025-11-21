@@ -193,7 +193,7 @@
                     self.postMessage({ 
                         status: 'success', 
                         key: key.toString(), 
-                        encryptedData: encrypted.toString() // In prod, seed Blob/Buffer for performance
+                        encryptedData: encrypted.toString()
                     });
                 } catch(err) {
                     self.postMessage({ status: 'error', msg: err.message });
@@ -490,10 +490,13 @@
             client.seed(file, (torrent) => {
                 log(`Seeding: ${torrent.infoHash}`);
                 
-                // Construct URL
-                let url = `${window.location.origin}${window.location.pathname}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${key}`;
+                // --- FIXED URL CONSTRUCTION ---
+                // Get current path, strip 'index.html' if present, remove trailing slash
+                let path = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+                // Construct new URL explicitly pointing to stream.html
+                let url = `${window.location.origin}${path}/stream.html?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${key}`;
                 
-                // Append Mode-Specific Params (Logic only, actual enforcement requires backend or complex client logic)
+                // Append Mode-Specific Params
                 if(currentMode === 'company' && settings['password']) {
                     url += `&hint=${btoa(settings['password'].substring(0,2))}`;
                 }
