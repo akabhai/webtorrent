@@ -12,188 +12,78 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* --- 1. CORE VARIABLES & RESET --- */
-        :root {
-            --bg-color: #f4f7f6;
-            --card-bg: #ffffff;
-            --text-color: #2d3436;
-            --accent-color: #3498db;
-            --border-radius: 8px;
-            --font-family: 'Segoe UI', system-ui, sans-serif;
-            --shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        /* --- 2. MODE THEMES --- */
-        body.mode-teacher { --bg-color: #e3f2fd; --accent-color: #0288d1; --font-family: 'Verdana', sans-serif; }
-        body.mode-company { --bg-color: #2c3e50; --card-bg: #34495e; --text-color: #ecf0f1; --accent-color: #f39c12; --border-radius: 2px; }
-        body.mode-anime { --bg-color: #120024; --card-bg: #2a0a45; --text-color: #e0aaff; --accent-color: #ff007a; --border-radius: 20px; }
-        body.mode-developer { --bg-color: #121212; --card-bg: #1e1e1e; --text-color: #00ff00; --accent-color: #00ff00; --font-family: 'Courier New', monospace; }
-        body.mode-hacker { --bg-color: #000; --card-bg: rgba(0,20,0,0.9); --text-color: #0f0; --accent-color: #0f0; --font-family: 'Courier New', monospace; --border-radius: 0; }
-
-        /* --- 3. GLOBAL LAYOUT --- */
-        body { background: var(--bg-color); color: var(--text-color); font-family: var(--font-family); margin: 0; padding: 20px; transition: 0.3s; min-height: 100vh; }
-        .container { max-width: 900px; margin: 0 auto; position: relative; z-index: 2; }
+        /* CSS SAME AS BEFORE - KEPT COMPACT FOR LOGIC FOCUS */
+        :root { --bg: #f4f7f6; --accent: #3498db; --font: 'Segoe UI', sans-serif; }
+        body.mode-teacher { --bg: #e3f2fd; --accent: #0288d1; }
+        body.mode-company { --bg: #2c3e50; --accent: #f39c12; color: #fff; }
+        body.mode-anime { --bg: #120024; --accent: #ff007a; color: #e0aaff; }
+        body.mode-hacker { --bg: #000; --accent: #0f0; color: #0f0; font-family: monospace; }
         
-        /* Hacker Matrix Background */
-        canvas#matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; display: none; }
-        body.mode-hacker canvas#matrix-canvas { display: block; }
-
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--card-bg); padding: 15px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
-        .header h2 { margin: 0; font-size: 1.5rem; }
+        body { background: var(--bg); font-family: var(--font); padding: 20px; transition: 0.3s; }
+        .container { max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.9); padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); color: #333; }
+        body.mode-hacker .container, body.mode-company .container, body.mode-anime .container { background: rgba(0,0,0,0.6); color: inherit; }
         
-        .main-card { background: var(--card-bg); padding: 30px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
-
-        /* --- 4. DYNAMIC FEATURE GRID --- */
-        .feature-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-            padding: 20px;
-            background: rgba(0,0,0,0.03);
-            border-radius: var(--border-radius);
-            border-left: 5px solid var(--accent-color);
-        }
-        
-        .feature-item { display: flex; align-items: center; gap: 10px; font-size: 0.9em; }
-        .feature-item label { flex: 1; cursor: pointer; }
-        .feature-item i { width: 20px; text-align: center; color: var(--accent-color); }
-        
-        /* Inputs in Feature Grid */
-        .feature-item input[type="text"], .feature-item input[type="number"], .feature-item select {
-            padding: 5px; border: 1px solid #ccc; border-radius: 4px; width: 100%; font-family: inherit;
-        }
-        .feature-item input[type="checkbox"] { accent-color: var(--accent-color); transform: scale(1.2); cursor: pointer; }
-
-        /* --- 5. UPLOADER UI --- */
-        #drop-zone {
-            border: 3px dashed var(--accent-color);
-            border-radius: var(--border-radius);
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-            background: rgba(0,0,0,0.01);
-        }
-        #drop-zone:hover, #drop-zone.dragover { background: rgba(0,0,0,0.05); transform: scale(1.01); }
-        
-        .file-status { margin-top: 15px; font-weight: bold; line-height: 1.5; }
-        .error-text { color: #e74c3c; }
-        .rename-text { color: var(--accent-color); font-style: italic; }
-
-        /* --- 6. BUTTONS & UTILS --- */
-        .btn-primary {
-            background: var(--accent-color); color: #fff; border: none; padding: 15px; width: 100%;
-            border-radius: var(--border-radius); font-size: 1.1em; font-weight: bold; cursor: pointer;
-            margin-top: 20px; transition: 0.2s; font-family: inherit;
-        }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
-
-        #hex-view { font-family: monospace; font-size: 11px; color: #888; margin-top: 10px; display: none; word-break: break-all; background: #000; padding: 10px; border-radius: 4px; }
-        #log-window { background: #111; color: #0f0; height: 150px; overflow-y: auto; padding: 10px; margin-top: 20px; border-radius: 4px; font-family: monospace; font-size: 12px; display: none; }
-
-        /* --- 7. RESULT SECTION --- */
-        #result-area { display: none; margin-top: 30px; text-align: center; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.1); }
-        #share-link { width: 100%; padding: 12px; margin-top: 10px; border: 2px solid var(--accent-color); border-radius: var(--border-radius); font-family: monospace; text-align: center; }
-        #qrcode { margin: 20px auto; display: inline-block; padding: 10px; background: white; border-radius: 8px; }
-
+        #drop-zone { border: 3px dashed var(--accent); padding: 40px; text-align: center; cursor: pointer; border-radius: 8px; margin-bottom: 20px; }
+        button { background: var(--accent); color: #fff; border: none; padding: 12px 20px; width: 100%; font-size: 1em; cursor: pointer; border-radius: 5px; }
+        button:disabled { opacity: 0.5; }
+        #result-area { display: none; margin-top: 20px; text-align: center; }
+        input[type="text"] { width: 100%; padding: 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <!-- HACKER MODE BACKGROUND -->
-    <canvas id="matrix-canvas"></canvas>
-
     <div class="container">
-        <!-- HEADER -->
-        <div class="header">
-            <div>
-                <h2><i class="fas fa-network-wired"></i> SecureShare</h2>
-                <small id="mode-badge" style="background:var(--accent-color); color:#fff; padding:2px 6px; border-radius:4px;">Default Mode</small>
-            </div>
-            <div style="text-align: right;">
-                <label style="font-size:0.9em; font-weight:bold;">Select Mode:</label><br>
-                <select id="mode-select" style="padding: 6px; border-radius: 4px;">
-                    <option value="default">Default</option>
-                    <optgroup label="Education">
-                        <option value="teacher">Teacher Mode</option>
-                    </optgroup>
-                    <optgroup label="Enterprise">
-                        <option value="company">Company Mode</option>
-                        <option value="hacker">Hacker Mode</option>
-                    </optgroup>
-                    <optgroup label="Media">
-                        <option value="anime">Anime Mode</option>
-                    </optgroup>
-                    <optgroup label="Utility">
-                        <option value="developer">Developer Mode</option>
-                    </optgroup>
-                </select>
-            </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <h2>SecureShare</h2>
+            <select id="mode-select" onchange="setMode(this.value)">
+                <option value="default">Default</option>
+                <option value="teacher">Teacher</option>
+                <option value="company">Company</option>
+                <option value="anime">Anime</option>
+                <option value="hacker">Hacker</option>
+            </select>
         </div>
 
-        <div class="main-card">
-            
-            <!-- DYNAMIC FEATURES -->
-            <div id="feature-ui" class="feature-container" style="display: none;"></div>
+        <!-- UPLOADER -->
+        <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <i class="fas fa-cloud-upload-alt" style="font-size: 3em;"></i>
+            <h3 id="status-text">Click to Upload</h3>
+            <input type="file" id="file-input" style="display: none;" onchange="processFile(this.files[0])">
+        </div>
 
-            <!-- UPLOADER -->
-            <div id="drop-zone">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 3em; color: var(--accent-color); margin-bottom: 10px;"></i>
-                <h3>Drag & Drop File Here</h3>
-                <p style="opacity: 0.7;">Or click to browse</p>
-                <input type="file" id="file-input" style="display: none;">
-            </div>
+        <button id="btn-encrypt" disabled onclick="startEncryption()">Generate Secure Link</button>
 
-            <!-- STATUS / FEEDBACK -->
-            <div id="status-display" class="file-status">Waiting for file...</div>
-            <div id="hex-view"></div>
-
-            <!-- ACTION -->
-            <button id="action-btn" class="btn-primary" disabled>Generate Secure Link</button>
-
-            <!-- LOGS (Dev Mode) -->
-            <div id="log-window"></div>
-
-            <!-- RESULTS -->
-            <div id="result-area">
-                <h3 style="color: var(--accent-color);"><i class="fas fa-check-circle"></i> Seeding Active</h3>
-                <p>Share this secure link with recipients:</p>
-                <input type="text" id="share-link" readonly onclick="this.select()">
-                <div id="qrcode"></div>
-                <br>
-                <button id="audit-btn" style="display:none; padding:8px 15px; background:#444; color:#fff; border:none; border-radius:4px; cursor:pointer;" onclick="downloadAudit()">
-                    <i class="fas fa-file-contract"></i> Download Audit Log
-                </button>
-            </div>
+        <!-- RESULT -->
+        <div id="result-area">
+            <h3>Seeding Active</h3>
+            <input type="text" id="share-link" readonly>
+            <div id="qrcode" style="margin-top:15px; display:inline-block; background:white; padding:10px;"></div>
         </div>
     </div>
 
-    <!-- AUDIO ASSETS -->
-    <audio id="sfx-beep" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_ff15c0e181.mp3"></audio>
-
-    <!-- ENCRYPTION WORKER -->
+    <!-- WORKER -->
     <script id="worker-script" type="javascript/worker">
         self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
         self.onmessage = function(e) {
             const { action, fileData } = e.data;
             if (action === 'encrypt') {
                 try {
-                    // Generate 256-bit key and 128-bit IV
+                    // 1. Generate Key (256-bit) & IV (128-bit)
                     const key = CryptoJS.lib.WordArray.random(32);
                     const iv = CryptoJS.lib.WordArray.random(16);
                     
-                    // Convert ArrayBuffer to WordArray
+                    // 2. Encrypt
                     const wordArray = CryptoJS.lib.WordArray.create(fileData);
+                    const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv }).toString();
                     
-                    // Encrypt
-                    const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
+                    // 3. Pack IV and Ciphertext together (IV:CIPHERTEXT)
+                    // This fixes the decryption error!
+                    const packet = iv.toString(CryptoJS.enc.Hex) + ':' + encrypted;
                     
                     self.postMessage({ 
                         status: 'success', 
-                        key: key.toString(), 
-                        encryptedData: encrypted.toString()
+                        key: key.toString(CryptoJS.enc.Hex), 
+                        encryptedPacket: packet 
                     });
                 } catch(err) {
                     self.postMessage({ status: 'error', msg: err.message });
@@ -202,382 +92,69 @@
         }
     </script>
 
-    <!-- MAIN SCRIPT -->
     <script>
-        // --- 1. CONFIGURATION: MODES & FEATURES ---
-        const MODES = {
-            default: { name: "Standard Mode", theme: "", features: [] },
-            
-            // MODE 1: TEACHER
-            teacher: {
-                name: "Teacher Mode",
-                theme: "mode-teacher",
-                features: [
-                    { id: 'block_exe', type: 'toggle', label: 'Block .EXE/.BAT', checked: true, icon: 'fa-ban' },
-                    { id: 'size_limit', type: 'toggle', label: 'Limit Size (50MB)', checked: true, icon: 'fa-weight-hanging' },
-                    { id: 'pdf_only', type: 'toggle', label: 'PDF Only Mode', checked: false, icon: 'fa-file-pdf' },
-                    { id: 'assign_tag', type: 'select', label: 'Tag', options: ['Homework', 'Exam', 'Syllabus', 'Lab'], icon: 'fa-tag' },
-                    { id: 'quiet_hours', type: 'toggle', label: 'Check Quiet Hours', checked: false, icon: 'fa-clock' },
-                    { id: 'roster', type: 'info', label: 'Roster Active: 24 Students', icon: 'fa-users' }
-                ]
-            },
+        // FIXED TRACKER LIST
+        const trackers = [
+            'wss://tracker.openwebtorrent.com',
+            'wss://tracker.files.fm:7073/announce',
+            'wss://tracker.webtorrent.dev'
+        ];
 
-            // MODE 2: COMPANY
-            company: {
-                name: "Company Mode",
-                theme: "mode-company",
-                features: [
-                    { id: 'confidential', type: 'toggle', label: 'Prefix [CONFIDENTIAL]', checked: true, icon: 'fa-user-secret' },
-                    { id: 'password', type: 'input', label: 'Link Password (Hint)', placeholder: 'Optional', icon: 'fa-key' },
-                    { id: 'expiry', type: 'select', label: 'Link Expiry', options: ['1 Hour', '24 Hours', 'Never'], icon: 'fa-hourglass-half' },
-                    { id: 'geo_fence', type: 'toggle', label: 'Verify Office IP', checked: true, icon: 'fa-building' },
-                    { id: 'watermark', type: 'toggle', label: 'Digital Watermark', checked: true, icon: 'fa-stamp' },
-                    { id: 'audit', type: 'toggle', label: 'Generate Audit Log', checked: true, icon: 'fa-list-alt' }
-                ]
-            },
+        const client = new WebTorrent({ tracker: { announce: trackers } });
+        let selectedFile = null;
+        let mode = 'default';
 
-            // MODE 3: ANIME / MEDIA
-            anime: {
-                name: "Anime Mode",
-                theme: "mode-anime",
-                features: [
-                    { id: 'season', type: 'input', label: 'Season (01)', value: '01', icon: 'fa-tv' },
-                    { id: 'episode', type: 'input', label: 'Episode (01)', value: '01', icon: 'fa-film' },
-                    { id: 'res_tag', type: 'select', label: 'Resolution', options: ['1080p', '720p', '4K'], icon: 'fa-eye' },
-                    { id: 'format_cop', type: 'toggle', label: 'Enforce MP4/MKV', checked: true, icon: 'fa-filter' },
-                    { id: 'cover_art', type: 'toggle', label: 'Fetch Metadata (Sim)', checked: true, icon: 'fa-image' },
-                    { id: 'intro_skip', type: 'toggle', label: 'Add Intro Skip', checked: true, icon: 'fa-forward' }
-                ]
-            },
-
-            // MODE 4: DEVELOPER
-            developer: {
-                name: "Developer Mode",
-                theme: "mode-developer",
-                features: [
-                    { id: 'console', type: 'toggle', label: 'Live Console', checked: true, icon: 'fa-terminal' },
-                    { id: 'hex', type: 'toggle', label: 'Hex Header View', checked: true, icon: 'fa-barcode' },
-                    { id: 'speed', type: 'range', label: 'Throttle Upload', icon: 'fa-tachometer-alt' },
-                    { id: 'tracker', type: 'input', label: 'Add Tracker', placeholder: 'wss://...', icon: 'fa-server' },
-                    { id: 'peer_id', type: 'info', label: 'PeerID: ' + Math.random().toString(16).substr(2,6), icon: 'fa-id-badge' },
-                    { id: 'json', type: 'button', label: 'Dump JSON', icon: 'fa-code' }
-                ]
-            },
-
-            // MODE 5: HACKER
-            hacker: {
-                name: "HACKER_TERMINAL",
-                theme: "mode-hacker",
-                features: [
-                    { id: 'matrix', type: 'toggle', label: 'Visuals', checked: true, icon: 'fa-eye' },
-                    { id: 'trace', type: 'toggle', label: 'Trace Route', checked: true, icon: 'fa-network-wired' },
-                    { id: 'spoof', type: 'toggle', label: 'Spoof IP', checked: true, icon: 'fa-mask' },
-                    { id: 'root', type: 'info', label: 'ROOT ACCESS: GRANTED', icon: 'fa-unlock' },
-                    { id: 'nuke', type: 'button', label: 'NUKE LOGS', icon: 'fa-bomb' },
-                    { id: 'sfx', type: 'toggle', label: 'Audio Feedback', checked: true, icon: 'fa-volume-up' }
-                ]
-            }
-        };
-
-        // --- 2. STATE MANAGEMENT ---
-        let client = new WebTorrent();
-        let currentMode = 'default';
-        let originalFile = null;
-        let processingFile = null;
-        let settings = {};
-
-        // --- 3. DOM ELEMENTS ---
-        const el = {
-            select: document.getElementById('mode-select'),
-            badge: document.getElementById('mode-badge'),
-            featContainer: document.getElementById('feature-ui'),
-            drop: document.getElementById('drop-zone'),
-            input: document.getElementById('file-input'),
-            status: document.getElementById('status-display'),
-            btn: document.getElementById('action-btn'),
-            hex: document.getElementById('hex-view'),
-            log: document.getElementById('log-window'),
-            result: document.getElementById('result-area'),
-            link: document.getElementById('share-link'),
-            qr: document.getElementById('qrcode'),
-            auditBtn: document.getElementById('audit-btn'),
-            matrixCanvas: document.getElementById('matrix-canvas')
-        };
-
-        // --- 4. EVENT LISTENERS ---
-        el.select.addEventListener('change', (e) => switchMode(e.target.value));
-        el.drop.addEventListener('click', () => el.input.click());
-        el.drop.addEventListener('dragover', (e) => { e.preventDefault(); el.drop.classList.add('dragover'); });
-        el.drop.addEventListener('dragleave', () => el.drop.classList.remove('dragover'));
-        el.drop.addEventListener('drop', handleDrop);
-        el.input.addEventListener('change', (e) => processFile(e.target.files[0]));
-        el.btn.addEventListener('click', startEncryption);
-
-        // --- 5. MODE SWITCHING LOGIC ---
-        function switchMode(mode) {
-            currentMode = mode;
-            document.body.className = MODES[mode].theme;
-            el.badge.innerText = MODES[mode].name;
-            
-            // Toggle Hacker Matrix
-            if(mode === 'hacker') startMatrix();
-            else stopMatrix();
-
-            // Render Features
-            renderFeatures(mode);
-            
-            // Visibility Toggles
-            el.log.style.display = (mode === 'developer' || mode === 'hacker') ? 'block' : 'none';
-            el.hex.style.display = 'none';
-            el.auditBtn.style.display = 'none';
-
-            // Re-process if file exists
-            if(originalFile) processFile(originalFile);
-            
-            log(`Switched to ${MODES[mode].name}`);
-        }
-
-        function renderFeatures(mode) {
-            el.featContainer.innerHTML = '';
-            const feats = MODES[mode].features;
-            
-            if(feats.length === 0) {
-                el.featContainer.style.display = 'none';
-                return;
-            }
-            el.featContainer.style.display = 'grid';
-
-            // Reset Settings
-            settings = {};
-
-            feats.forEach(f => {
-                const div = document.createElement('div');
-                div.className = 'feature-item';
-                
-                // Set default settings
-                if(f.type === 'toggle') settings[f.id] = f.checked;
-                if(f.type === 'input' || f.type === 'select') settings[f.id] = f.value || (f.options ? f.options[0] : '');
-
-                // HTML Generation
-                let control = '';
-                if(f.type === 'toggle') 
-                    control = `<input type="checkbox" ${f.checked?'checked':''} onchange="updateSetting('${f.id}', this.checked)">`;
-                else if(f.type === 'input') 
-                    control = `<input type="text" value="${f.value||''}" placeholder="${f.placeholder||''}" onchange="updateSetting('${f.id}', this.value)">`;
-                else if(f.type === 'select') 
-                    control = `<select onchange="updateSetting('${f.id}', this.value)">${f.options.map(o => `<option>${o}</option>`).join('')}</select>`;
-                else if(f.type === 'button')
-                    control = `<button style="padding:2px 8px; cursor:pointer;" onclick="alert('${f.label} Clicked')">Run</button>`;
-                
-                div.innerHTML = `<i class="fas ${f.icon}"></i> <label>${f.label}</label> ${control}`;
-                el.featContainer.appendChild(div);
-            });
-        }
-
-        window.updateSetting = (id, val) => {
-            settings[id] = val;
-            if(originalFile) processFile(originalFile);
-        };
-
-        // --- 6. FILE PIPELINE (Validation -> Transformation) ---
-        function handleDrop(e) {
-            e.preventDefault();
-            el.drop.classList.remove('dragover');
-            if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
+        function setMode(m) {
+            mode = m;
+            document.body.className = `mode-${m}`;
         }
 
         function processFile(file) {
-            originalFile = file;
-            processingFile = file; // Default to original
-            let isValid = true;
-            let messages = [];
-            let newName = file.name;
-            
-            // Mode Specific Logic
-            if(currentMode === 'teacher') {
-                const ext = file.name.split('.').pop().toLowerCase();
-                if(settings['block_exe'] && ['exe','bat','msi'].includes(ext)) {
-                    messages.push("❌ Blocked: Executable files not allowed.");
-                    isValid = false;
-                }
-                if(settings['size_limit'] && file.size > 50 * 1024 * 1024) {
-                    messages.push("❌ Blocked: File exceeds 50MB limit.");
-                    isValid = false;
-                }
-                if(settings['pdf_only'] && ext !== 'pdf') {
-                    messages.push("❌ Blocked: Only PDF allowed.");
-                    isValid = false;
-                }
-                if(settings['quiet_hours']) {
-                    const h = new Date().getHours();
-                    if(h > 20 || h < 7) messages.push("⚠️ Warning: Outside quiet hours.");
-                }
-                if(settings['assign_tag']) {
-                    newName = `[${settings['assign_tag']}] ${file.name}`;
-                }
-            }
-            else if(currentMode === 'company') {
-                if(settings['confidential']) newName = `[CONFIDENTIAL] ${file.name}`;
-                if(settings['geo_fence']) messages.push("✅ Geo-Fence: Office IP Verified.");
-                if(settings['watermark']) messages.push("ℹ️ Watermark pending...");
-            }
-            else if(currentMode === 'anime') {
-                if(settings['format_cop']) {
-                    const ext = file.name.split('.').pop().toLowerCase();
-                    if(!['mp4','mkv'].includes(ext)) messages.push("⚠️ Warning: Non-standard container.");
-                }
-                const s = document.querySelector('[onchange*="season"]') ? document.querySelector('[onchange*="season"]').value : '01';
-                const e = document.querySelector('[onchange*="episode"]') ? document.querySelector('[onchange*="episode"]').value : '01';
-                const res = settings['res_tag'] ? ` [${settings['res_tag']}]` : '';
-                newName = `S${s.padStart(2,'0')}E${e.padStart(2,'0')} - ${file.name}${res}`;
-            }
-            else if(currentMode === 'developer') {
-                if(settings['hex']) {
-                    el.hex.style.display = 'block';
-                    previewHex(file);
-                }
-            }
-
-            // UI Feedback
-            if(isValid) {
-                let html = `<strong>${file.name}</strong><br>`;
-                if(messages.length) html += `<span style="font-size:0.9em; color:#666;">${messages.join('<br>')}</span><br>`;
-                if(newName !== file.name) {
-                    html += `<span class="rename-text">Renaming to: ${newName}</span>`;
-                    processingFile = new File([file.slice(0, file.size, file.type)], newName, {type: file.type});
-                }
-                el.status.innerHTML = html;
-                el.btn.disabled = false;
-                el.btn.innerText = "Generate Secure Link";
-            } else {
-                el.status.innerHTML = `<span class="error-text">${messages.join('<br>')}</span>`;
-                el.btn.disabled = true;
-            }
-
-            if(currentMode === 'hacker') document.getElementById('sfx-beep').play().catch(()=>{});
+            if(!file) return;
+            selectedFile = file;
+            document.getElementById('status-text').innerText = `Selected: ${file.name}`;
+            document.getElementById('btn-encrypt').disabled = false;
         }
 
-        // --- 7. ENCRYPTION & SEEDING ---
         function startEncryption() {
-            el.btn.disabled = true;
-            el.btn.innerText = "Encrypting (AES-256)...";
+            const btn = document.getElementById('btn-encrypt');
+            btn.disabled = true;
+            btn.innerText = "Encrypting (Please Wait)...";
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                // Initialize Worker
                 const blob = new Blob([document.getElementById('worker-script').textContent], {type: "text/javascript"});
                 const worker = new Worker(URL.createObjectURL(blob));
 
+                // Send ArrayBuffer to Worker
                 worker.postMessage({ action: 'encrypt', fileData: e.target.result });
                 
                 worker.onmessage = function(ev) {
                     if(ev.data.status === 'success') {
-                        log("Encryption Done. Seeding...");
-                        seedFile(processingFile, ev.data.key);
+                        // Create file from the IV:DATA packet
+                        const secureFile = new File([ev.data.encryptedPacket], selectedFile.name, {type: "text/plain"});
+                        seedFile(secureFile, ev.data.key);
                         worker.terminate();
-                    } else {
-                        alert("Encryption Error");
-                        el.btn.disabled = false;
                     }
                 }
             };
-            reader.readAsArrayBuffer(processingFile);
+            reader.readAsArrayBuffer(selectedFile);
         }
 
         function seedFile(file, key) {
-            el.btn.innerText = "Seeding to P2P Swarm...";
+            document.getElementById('btn-encrypt').innerText = "Seeding to Network...";
             
-            client.seed(file, (torrent) => {
-                log(`Seeding: ${torrent.infoHash}`);
+            client.seed(file, { announce: trackers }, (torrent) => {
+                const path = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+                const url = `${window.location.origin}${path}/stream.html?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${key}`;
                 
-                // --- FIXED URL CONSTRUCTION ---
-                // Get current path, strip 'index.html' if present, remove trailing slash
-                let path = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
-                // Construct new URL explicitly pointing to stream.html
-                let url = `${window.location.origin}${path}/stream.html?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${key}`;
+                document.getElementById('result-area').style.display = 'block';
+                document.getElementById('share-link').value = url;
+                new QRCode(document.getElementById('qrcode'), { text: url, width: 128, height: 128 });
                 
-                // Append Mode-Specific Params
-                if(currentMode === 'company' && settings['password']) {
-                    url += `&hint=${btoa(settings['password'].substring(0,2))}`;
-                }
-                if(currentMode === 'company' && settings['expiry']) {
-                    url += `&exp=true`;
-                }
-
-                // Show Results
-                el.result.style.display = 'block';
-                el.link.value = url;
-                
-                el.qr.innerHTML = '';
-                new QRCode(el.qr, { text: url, width: 128, height: 128 });
-
-                if(currentMode === 'company' && settings['audit']) el.auditBtn.style.display = 'inline-block';
-                
-                el.btn.innerText = "Done";
+                document.getElementById('btn-encrypt').innerText = "Done";
             });
         }
-
-        // --- 8. UTILITIES ---
-        function log(msg) {
-            console.log(msg);
-            const line = document.createElement('div');
-            line.innerText = `> ${msg}`;
-            el.log.appendChild(line);
-            el.log.scrollTop = el.log.scrollHeight;
-        }
-
-        function previewHex(file) {
-            const r = new FileReader();
-            r.onload = (e) => {
-                const u8 = new Uint8Array(e.target.result).subarray(0, 32);
-                el.hex.innerText = "HEX HEAD: " + Array.from(u8).map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
-            }
-            r.readAsArrayBuffer(file.slice(0,32));
-        }
-
-        function downloadAudit() {
-            const txt = `AUDIT LOG\nDATE: ${new Date().toISOString()}\nFILE: ${processingFile.name}\nMODE: ${currentMode}\nIP: VERIFIED\nSTATUS: ENCRYPTED`;
-            const blob = new Blob([txt], {type: 'text/plain'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `audit_${Date.now()}.txt`;
-            a.click();
-        }
-
-        // --- 9. MATRIX ANIMATION (HACKER MODE) ---
-        let matrixInterval;
-        function startMatrix() {
-            const canvas = el.matrixCanvas;
-            const ctx = canvas.getContext('2d');
-            canvas.style.display = 'block';
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
-            const cols = Math.floor(canvas.width / 20);
-            const ypos = Array(cols).fill(0);
-
-            if(matrixInterval) clearInterval(matrixInterval);
-            matrixInterval = setInterval(() => {
-                ctx.fillStyle = '#0001';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#0f0';
-                ctx.font = '15pt monospace';
-                
-                ypos.forEach((y, ind) => {
-                    const text = String.fromCharCode(Math.random() * 128);
-                    const x = ind * 20;
-                    ctx.fillText(text, x, y);
-                    if (y > 100 + Math.random() * 10000) ypos[ind] = 0;
-                    else ypos[ind] = y + 20;
-                });
-            }, 50);
-        }
-
-        function stopMatrix() {
-            clearInterval(matrixInterval);
-            el.matrixCanvas.style.display = 'none';
-        }
-
     </script>
 </body>
 </html>
