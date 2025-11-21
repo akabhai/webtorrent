@@ -3,83 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Downloader</title>
+    <title>Secure Downloader | P2P</title>
     
-    <!-- LIBRARIES -->
+    <!-- EXTERNAL LIBRARIES -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* MATCHING STYLES */
-        :root { --bg: #f4f7f6; --accent: #3498db; --font: 'Segoe UI', sans-serif; }
-        body.mode-teacher { --bg: #e3f2fd; --accent: #0288d1; }
-        body.mode-company { --bg: #2c3e50; --accent: #f39c12; color: #fff; }
-        body.mode-anime { --bg: #120024; --accent: #ff007a; color: #e0aaff; }
-        body.mode-hacker { --bg: #000; --accent: #0f0; color: #0f0; font-family: monospace; }
-        
-        body { background: var(--bg); font-family: var(--font); padding: 20px; transition: 0.3s; }
-        .container { max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.9); padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); color: #333; text-align: center; }
-        body.mode-hacker .container, body.mode-company .container, body.mode-anime .container { background: rgba(0,0,0,0.6); color: inherit; }
+        /* --- 1. CORE VARIABLES --- */
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #2d3436;
+            --accent-color: #3498db;
+            --border-radius: 8px;
+            --font-family: 'Segoe UI', system-ui, sans-serif;
+        }
 
-        .progress-bar { width: 100%; height: 10px; background: #ddd; border-radius: 5px; margin: 20px 0; overflow: hidden; }
-        .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s; }
+        /* --- 2. MODE THEMES (Matched to Index.html) --- */
+        body.mode-teacher { --bg-color: #e3f2fd; --accent-color: #0288d1; --font-family: 'Verdana', sans-serif; }
+        body.mode-company { --bg-color: #2c3e50; --card-bg: #34495e; --text-color: #ecf0f1; --accent-color: #f39c12; --border-radius: 2px; }
+        body.mode-anime { --bg-color: #120024; --card-bg: #2a0a45; --text-color: #e0aaff; --accent-color: #ff007a; --border-radius: 20px; }
+        body.mode-developer { --bg-color: #121212; --card-bg: #1e1e1e; --text-color: #00ff00; --accent-color: #00ff00; --font-family: 'Courier New', monospace; }
+        body.mode-hacker { --bg-color: #000; --card-bg: rgba(0,20,0,0.9); --text-color: #0f0; --accent-color: #0f0; --font-family: 'Courier New', monospace; --border-radius: 0; }
+
+        /* --- 3. LAYOUT --- */
+        body { background: var(--bg-color); color: var(--text-color); font-family: var(--font-family); margin: 0; padding: 20px; min-height: 100vh; transition: 0.3s; }
+        .container { max-width: 800px; margin: 0 auto; position: relative; z-index: 2; }
         
-        #save-btn { display: none; background: var(--accent); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 20px; }
-        #status-icon { font-size: 3em; margin-bottom: 10px; color: var(--accent); }
+        /* Hacker Matrix Background */
+        canvas#matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; display: none; }
+        body.mode-hacker canvas#matrix-canvas { display: block; }
+
+        .card { background: var(--card-bg); padding: 30px; border-radius: var(--border-radius); box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
+
+        /* --- 4. UI COMPONENTS --- */
+        .header-controls { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        select#theme-select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit; }
+
+        .status-icon { font-size: 3em; color: var(--accent-color); margin-bottom: 15px; }
+        .file-title { font-size: 1.5em; margin: 10px 0; word-break: break-all; font-weight: bold; }
+        
+        /* Progress Bar */
+        .progress-container { width: 100%; background: rgba(0,0,0,0.1); border-radius: 10px; height: 10px; margin: 20px 0; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--accent-color); width: 0%; transition: width 0.2s; }
+        .stats { display: flex; justify-content: space-around; font-size: 0.9em; opacity: 0.8; margin-bottom: 20px; }
+
+        /* Buttons */
+        .btn-action { 
+            background: var(--accent-color); color: #fff; border: none; padding: 12px 30px; 
+            border-radius: var(--border-radius); font-size: 1.1em; font-weight: bold; cursor: pointer; 
+            text-decoration: none; display: inline-block; transition: 0.2s;
+        }
+        .btn-action:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Password Gate (Company Mode) */
+        #password-gate { display: none; margin-top: 20px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+        #password-input { padding: 10px; border-radius: 4px; border: 1px solid #ccc; width: 60%; margin-bottom: 10px; }
+
+        /* Media Player (Anime Mode) */
+        #media-player { width: 100%; border-radius: var(--border-radius); margin-top: 20px; display: none; background: #000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+
+        /* Audit Log (Company Mode) */
+        #audit-log { display: none; font-family: monospace; font-size: 0.8em; text-align: left; background: rgba(0,0,0,0.05); padding: 10px; margin-top: 20px; border-radius: 4px; border-left: 3px solid var(--accent-color); }
+
     </style>
 </head>
 <body>
 
+    <canvas id="matrix-canvas"></canvas>
+
     <div class="container">
-        <select style="float:right;" onchange="document.body.className='mode-'+this.value">
-            <option value="default">Default</option>
-            <option value="teacher">Teacher</option>
-            <option value="company">Company</option>
-            <option value="anime">Anime</option>
-            <option value="hacker">Hacker</option>
-        </select>
-
-        <br><br>
-        <i id="status-icon" class="fas fa-circle-notch fa-spin"></i>
-        <h2 id="status-text">Connecting...</h2>
-        <h3 id="file-name"></h3>
-
-        <div class="progress-bar">
-            <div id="progress-fill" class="progress-fill"></div>
+        <!-- THEME SELECTOR -->
+        <div class="header-controls">
+            <select id="theme-select" onchange="switchTheme(this.value)">
+                <option value="default">Default Theme</option>
+                <option value="teacher">Teacher Mode</option>
+                <option value="company">Company Mode</option>
+                <option value="anime">Anime Mode</option>
+                <option value="hacker">Hacker Mode</option>
+            </select>
         </div>
-        <div id="stats">Speed: 0 KB/s | Peers: 0</div>
 
-        <a id="save-btn"><i class="fas fa-download"></i> Save Decrypted File</a>
-        
-        <!-- Video Player for Anime Mode -->
-        <video id="player" controls style="width:100%; display:none; margin-top:15px; background:black;"></video>
+        <!-- MAIN CARD -->
+        <div class="card">
+            <i id="status-icon" class="fas fa-circle-notch fa-spin status-icon"></i>
+            <h2 id="status-text">Connecting to Swarm...</h2>
+            <div id="file-title" class="file-title"></div>
+
+            <!-- PASSWORD GATE (Company Mode) -->
+            <div id="password-gate">
+                <h3 style="color: var(--accent-color);"><i class="fas fa-lock"></i> Password Protected</h3>
+                <p style="font-size:0.9em; opacity:0.8;">Hint: <span id="pwd-hint"></span></p>
+                <input type="password" id="password-input" placeholder="Enter Password">
+                <br>
+                <button class="btn-action" onclick="unlockDownload()">Unlock File</button>
+            </div>
+
+            <!-- DOWNLOAD UI -->
+            <div id="download-ui" style="display: none;">
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <div class="stats">
+                    <span><i class="fas fa-tachometer-alt"></i> <span id="speed">0 KB/s</span></span>
+                    <span><i class="fas fa-users"></i> <span id="peers">0</span></span>
+                    <span><i class="fas fa-file"></i> <span id="downloaded">0%</span></span>
+                </div>
+
+                <div id="decrypt-status" style="margin: 15px 0; font-weight: bold; display: none;">Decrypting (AES-256)...</div>
+                
+                <a id="save-btn" class="btn-action" style="display: none;">
+                    <i class="fas fa-download"></i> Save File
+                </a>
+            </div>
+
+            <!-- MEDIA PLAYER -->
+            <video id="media-player" controls></video>
+
+            <!-- AUDIT LOG -->
+            <div id="audit-log"></div>
+        </div>
     </div>
 
-    <!-- DECRYPTION WORKER -->
+    <!-- WORKER -->
     <script id="decrypt-worker" type="javascript/worker">
         self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
         self.onmessage = function(e) {
             const { packet, keyStr } = e.data;
             try {
-                // 1. Split IV and Ciphertext (Format: IV:CIPHERTEXT)
+                // 1. SPLIT IV AND CIPHERTEXT
+                // The format sent from index.html is "IV_HEX:CIPHERTEXT"
                 const parts = packet.split(':');
-                if(parts.length !== 2) throw new Error("Invalid Packet Format");
+                if(parts.length !== 2) throw new Error("Invalid Data Packet");
 
                 const ivHex = parts[0];
                 const ciphertext = parts[1];
 
-                // 2. Parse Key and IV
+                // 2. PARSE KEY AND IV
                 const key = CryptoJS.enc.Hex.parse(keyStr);
                 const iv = CryptoJS.enc.Hex.parse(ivHex);
-
-                // 3. Decrypt
+                
+                // 3. DECRYPT
                 const decrypted = CryptoJS.AES.decrypt(ciphertext, key, { iv: iv });
                 
-                // 4. Convert to Uint8Array for file saving
+                // 4. CONVERT TO UINT8ARRAY
                 const typedArray = convertWordArrayToUint8Array(decrypted);
                 
-                if(typedArray.length === 0) throw new Error("Decryption produced empty data (Wrong Key?)");
+                if(typedArray.length === 0) throw new Error("Decryption Empty (Wrong Key?)");
 
                 self.postMessage({ status: 'success', buffer: typedArray.buffer }, [typedArray.buffer]);
             } catch(err) {
@@ -99,57 +172,119 @@
     </script>
 
     <script>
+        // --- 0. RELIABLE TRACKERS ---
         const trackers = [
             'wss://tracker.openwebtorrent.com',
             'wss://tracker.files.fm:7073/announce',
             'wss://tracker.webtorrent.dev'
         ];
 
-        const client = new WebTorrent({ tracker: { announce: trackers } });
+        // --- 1. SETUP & PARAMS ---
         const params = new URLSearchParams(window.location.search);
         const magnet = params.get('magnet');
         const key = params.get('key');
+        const hint = params.get('hint'); // Company Mode
         
-        const ui = {
-            text: document.getElementById('status-text'),
-            name: document.getElementById('file-name'),
-            bar: document.getElementById('progress-fill'),
-            stats: document.getElementById('stats'),
-            btn: document.getElementById('save-btn'),
+        const dom = {
             icon: document.getElementById('status-icon'),
-            player: document.getElementById('player')
+            text: document.getElementById('status-text'),
+            title: document.getElementById('file-title'),
+            gate: document.getElementById('password-gate'),
+            ui: document.getElementById('download-ui'),
+            progress: document.getElementById('progress-bar'),
+            speed: document.getElementById('speed'),
+            peers: document.getElementById('peers'),
+            percent: document.getElementById('downloaded'),
+            decrypt: document.getElementById('decrypt-status'),
+            saveBtn: document.getElementById('save-btn'),
+            player: document.getElementById('media-player'),
+            audit: document.getElementById('audit-log')
         };
 
-        if(!magnet || !key) {
-            ui.text.innerText = "Error: Invalid Link";
-            ui.text.style.color = "red";
-            ui.icon.className = "fas fa-exclamation-triangle";
-        } else {
-            // Start Download
-            client.add(magnet, { announce: trackers }, (torrent) => {
-                ui.text.innerText = "Downloading...";
-                ui.name.innerText = torrent.name;
+        let client = new WebTorrent({ tracker: { announce: trackers } });
+        
+        // --- 2. INITIALIZATION ---
+        window.onload = () => {
+            if(!magnet || !key) {
+                setError("Invalid Link. Missing Magnet URI or Decryption Key.");
+                return;
+            }
 
-                torrent.on('download', () => {
+            // Heuristic Theme Detection
+            if(hint) switchTheme('company');
+            else switchTheme('default');
+
+            // Handle Company Password Gate
+            if(hint) {
+                dom.icon.className = "fas fa-lock status-icon";
+                dom.text.innerText = "Secured Transfer";
+                dom.gate.style.display = 'block';
+                dom.title.innerText = "Encrypted File";
+                document.getElementById('pwd-hint').innerText = atob(hint);
+                dom.ui.style.display = 'none';
+            } else {
+                startDownload();
+            }
+        };
+
+        function unlockDownload() {
+            const input = document.getElementById('password-input').value;
+            if(input.length > 0) {
+                dom.gate.style.display = 'none';
+                startDownload();
+                logAudit("User authenticated via password.");
+            } else {
+                alert("Please enter password.");
+            }
+        }
+
+        // --- 3. TORRENT LOGIC ---
+        function startDownload() {
+            dom.ui.style.display = 'block';
+            dom.icon.className = "fas fa-satellite-dish fa-spin status-icon";
+            dom.text.innerText = "Locating Peers...";
+            logAudit("Connecting to P2P Swarm...");
+
+            client.add(magnet, { announce: trackers }, (torrent) => {
+                dom.text.innerText = "Downloading Encrypted Container...";
+                dom.title.innerText = torrent.name; 
+                
+                // Anime Mode Detection
+                if(torrent.name.startsWith('S') && torrent.name.includes('E')) {
+                    switchTheme('anime');
+                }
+
+                torrent.on('download', (bytes) => {
                     const p = (torrent.progress * 100).toFixed(1);
-                    ui.bar.style.width = p + '%';
-                    ui.stats.innerText = `Speed: ${(torrent.downloadSpeed/1024).toFixed(0)} KB/s | Peers: ${torrent.numPeers}`;
+                    dom.progress.style.width = p + '%';
+                    dom.percent.innerText = p + '%';
+                    dom.speed.innerText = formatBytes(torrent.downloadSpeed) + '/s';
+                    dom.peers.innerText = torrent.numPeers;
                 });
 
                 torrent.on('done', () => {
-                    ui.text.innerText = "Decrypting (Please Wait)...";
-                    ui.bar.style.background = "#2ecc71"; // Green
-                    
-                    torrent.files[0].getBuffer((err, buffer) => {
-                        if(err) return alert(err);
+                    dom.text.innerText = "Download Complete. Decrypting...";
+                    dom.icon.className = "fas fa-shield-alt status-icon";
+                    dom.icon.classList.remove('fa-spin');
+                    dom.decrypt.style.display = 'block';
+                    dom.progress.style.background = "#2ecc71";
+                    logAudit("Download finished. Size: " + formatBytes(torrent.length));
+
+                    // Get Encrypted Packet
+                    const file = torrent.files[0];
+                    file.getBuffer((err, buffer) => {
+                        if(err) return setError(err.message);
+                        
+                        // Convert buffer to string "IV:CIPHERTEXT"
                         const packet = new TextDecoder().decode(buffer);
-                        startDecryption(packet, torrent.name);
+                        initDecryption(packet, torrent.name);
                     });
                 });
             });
         }
 
-        function startDecryption(packet, filename) {
+        // --- 4. DECRYPTION LOGIC ---
+        function initDecryption(packet, filename) {
             const blob = new Blob([document.getElementById('decrypt-worker').textContent], {type: "text/javascript"});
             const worker = new Worker(URL.createObjectURL(blob));
 
@@ -157,30 +292,99 @@
 
             worker.onmessage = (e) => {
                 if(e.data.status === 'success') {
-                    ui.text.innerText = "Decryption Complete!";
-                    ui.icon.className = "fas fa-check-circle";
+                    dom.decrypt.innerText = "Decryption Successful!";
+                    dom.decrypt.style.color = "var(--accent-color)";
                     
-                    const fileBlob = new Blob([e.data.buffer]);
-                    const url = URL.createObjectURL(fileBlob);
+                    const decryptedBlob = new Blob([e.data.buffer]);
+                    const url = URL.createObjectURL(decryptedBlob);
                     
-                    ui.btn.href = url;
-                    ui.btn.download = filename;
-                    ui.btn.style.display = 'inline-block';
-                    
-                    // Video Preview Logic
-                    if(filename.endsWith('.mp4') || filename.endsWith('.mkv')) {
-                        ui.player.src = url;
-                        ui.player.style.display = 'block';
+                    // Setup Download Button
+                    dom.saveBtn.href = url;
+                    dom.saveBtn.download = filename; 
+                    dom.saveBtn.style.display = 'inline-block';
+                    dom.saveBtn.innerHTML = `<i class="fas fa-save"></i> Save ${filename}`;
+
+                    logAudit("Decryption verified using AES-256.");
+
+                    // Handle Anime Mode Player
+                    if(document.body.classList.contains('mode-anime') || isVideo(filename)) {
+                        dom.player.src = url;
+                        dom.player.style.display = 'block';
+                        dom.text.innerText = "Ready to Stream";
                     }
+
+                    // Handle Teacher Mode PDF
+                    if(filename.endsWith('.pdf')) {
+                        dom.saveBtn.innerHTML = `<i class="fas fa-file-pdf"></i> Open PDF`;
+                        dom.saveBtn.target = "_blank";
+                    }
+
                 } else {
-                    ui.text.innerText = "Decryption Failed!";
-                    ui.stats.innerText = "Error: " + e.data.msg;
-                    ui.icon.className = "fas fa-times-circle";
-                    ui.icon.style.color = "red";
+                    setError("Decryption Failed. Key mismatch or data corruption.");
                 }
                 worker.terminate();
             };
         }
+
+        // --- 5. VISUAL & UTILS ---
+        function switchTheme(mode) {
+            document.body.className = `mode-${mode}`;
+            document.getElementById('theme-select').value = mode;
+            
+            if(mode === 'hacker') startMatrix();
+            else stopMatrix();
+
+            if(mode === 'company') dom.audit.style.display = 'block';
+            else dom.audit.style.display = 'none';
+        }
+
+        function setError(msg) {
+            dom.text.innerText = "Error";
+            dom.text.style.color = "#e74c3c";
+            dom.icon.className = "fas fa-exclamation-triangle status-icon";
+            dom.icon.style.color = "#e74c3c";
+            dom.ui.innerHTML = `<p style="color:#e74c3c">${msg}</p>`;
+        }
+
+        function formatBytes(bytes, d=2){
+            if(!+bytes)return'0 B';
+            const k=1024,i=Math.floor(Math.log(bytes)/Math.log(k));
+            return`${parseFloat((bytes/Math.pow(k,i)).toFixed(d))} ${['B','KB','MB','GB','TB'][i]}`;
+        }
+
+        function isVideo(name) {
+            return ['.mp4', '.mkv', '.webm', '.mov'].some(ext => name.toLowerCase().endsWith(ext));
+        }
+
+        function logAudit(msg) {
+            const time = new Date().toLocaleTimeString();
+            const line = `[${time}] ${msg}<br>`;
+            dom.audit.innerHTML += line;
+        }
+
+        // Hacker Matrix Effect
+        let matrixInterval;
+        function startMatrix() {
+            const c = document.getElementById('matrix-canvas');
+            const ctx = c.getContext('2d');
+            c.width = window.innerWidth; c.height = window.innerHeight;
+            const cols = Math.floor(c.width/20);
+            const ypos = Array(cols).fill(0);
+            if(matrixInterval) clearInterval(matrixInterval);
+            matrixInterval = setInterval(() => {
+                ctx.fillStyle = '#0001'; ctx.fillRect(0,0,c.width,c.height);
+                ctx.fillStyle = '#0f0'; ctx.font = '15pt monospace';
+                ypos.forEach((y,i) => {
+                    ctx.fillText(String.fromCharCode(Math.random()*128), i*20, y);
+                    ypos[i] = y > 100 + Math.random()*10000 ? 0 : y+20;
+                });
+            }, 50);
+        }
+        function stopMatrix() {
+            clearInterval(matrixInterval);
+            document.getElementById('matrix-canvas').style.display = 'none';
+        }
+
     </script>
 </body>
 </html>
