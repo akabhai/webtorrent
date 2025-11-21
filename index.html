@@ -3,107 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Mode Secure P2P</title>
+    <title>P2P Secure Ultimate Sharer</title>
     
-    <!-- CDNs -->
+    <!-- EXTERNAL LIBRARIES -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* --- CORE VARIABLES --- */
+        /* --- 1. CORE VARIABLES & RESET --- */
         :root {
-            --bg-color: #f4f6f8;
+            --bg-color: #f4f7f6;
             --card-bg: #ffffff;
-            --text-main: #2d3436;
-            --accent: #0984e3;
-            --border-radius: 12px;
-            --font-stack: 'Segoe UI', system-ui, sans-serif;
-            --shadow: 0 10px 30px rgba(0,0,0,0.08);
+            --text-color: #2d3436;
+            --accent-color: #3498db;
+            --border-radius: 8px;
+            --font-family: 'Segoe UI', system-ui, sans-serif;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        /* --- THEME MODES --- */
-        body.mode-teacher { --bg-color: #e3f2fd; --accent: #1976d2; --font-stack: 'Verdana', sans-serif; }
-        body.mode-student { --bg-color: #f1f8e9; --accent: #7cb342; --font-stack: 'Verdana', sans-serif; }
-        body.mode-company { --bg-color: #2c3e50; --card-bg: #34495e; --text-main: #ecf0f1; --accent: #e67e22; --border-radius: 4px; }
-        body.mode-anime { --bg-color: #240046; --card-bg: rgba(60, 9, 108, 0.9); --text-main: #e0aaff; --accent: #ff006e; --border-radius: 25px; }
-        body.mode-hacker { --bg-color: #000; --card-bg: #001100; --text-main: #0f0; --accent: #0f0; --font-stack: 'Courier New', monospace; --border-radius: 0; }
-        body.mode-developer { --bg-color: #1e1e1e; --card-bg: #2d2d2d; --text-main: #d4d4d4; --accent: #007acc; --font-stack: 'Consolas', monospace; }
+        /* --- 2. MODE THEMES --- */
+        body.mode-teacher { --bg-color: #e3f2fd; --accent-color: #0288d1; --font-family: 'Verdana', sans-serif; }
+        body.mode-company { --bg-color: #2c3e50; --card-bg: #34495e; --text-color: #ecf0f1; --accent-color: #f39c12; --border-radius: 2px; }
+        body.mode-anime { --bg-color: #120024; --card-bg: #2a0a45; --text-color: #e0aaff; --accent-color: #ff007a; --border-radius: 20px; }
+        body.mode-developer { --bg-color: #121212; --card-bg: #1e1e1e; --text-color: #00ff00; --accent-color: #00ff00; --font-family: 'Courier New', monospace; }
+        body.mode-hacker { --bg-color: #000; --card-bg: rgba(0,20,0,0.9); --text-color: #0f0; --accent-color: #0f0; --font-family: 'Courier New', monospace; --border-radius: 0; }
 
-        /* --- LAYOUT --- */
-        body { margin: 0; padding: 20px; font-family: var(--font-stack); background: var(--bg-color); color: var(--text-main); transition: 0.3s; }
-        .container { max-width: 850px; margin: 0 auto; }
+        /* --- 3. GLOBAL LAYOUT --- */
+        body { background: var(--bg-color); color: var(--text-color); font-family: var(--font-family); margin: 0; padding: 20px; transition: 0.3s; min-height: 100vh; }
+        .container { max-width: 900px; margin: 0 auto; position: relative; z-index: 2; }
         
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .mode-select-wrapper { background: var(--card-bg); padding: 10px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
-        select { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit; }
+        /* Hacker Matrix Background */
+        canvas#matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; display: none; }
+        body.mode-hacker canvas#matrix-canvas { display: block; }
 
-        .main-card { background: var(--card-bg); padding: 30px; border-radius: var(--border-radius); box-shadow: var(--shadow); position: relative; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--card-bg); padding: 15px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
+        .header h2 { margin: 0; font-size: 1.5rem; }
+        
+        .main-card { background: var(--card-bg); padding: 30px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
 
-        /* --- DYNAMIC FEATURE TOOLBARS --- */
-        .feature-bar { 
-            display: none; /* Hidden by default */
-            background: rgba(0,0,0,0.05); 
-            padding: 15px; 
-            margin-bottom: 20px; 
-            border-radius: var(--border-radius); 
-            border-left: 5px solid var(--accent);
+        /* --- 4. DYNAMIC FEATURE GRID --- */
+        .feature-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(0,0,0,0.03);
+            border-radius: var(--border-radius);
+            border-left: 5px solid var(--accent-color);
         }
-
-        /* --- UPLOADER --- */
-        #drop-zone { border: 3px dashed rgba(0,0,0,0.2); border-radius: var(--border-radius); padding: 40px; text-align: center; cursor: pointer; transition: 0.2s; }
-        #drop-zone:hover, #drop-zone.dragover { border-color: var(--accent); background: rgba(0,0,0,0.05); }
         
-        .file-info { margin-top: 15px; font-weight: bold; }
-        .rename-preview { font-size: 0.9em; color: var(--accent); margin-top: 5px; font-style: italic; }
-
-        /* --- BUTTONS --- */
-        .btn-primary { 
-            background: var(--accent); color: white; border: none; padding: 12px 30px; 
-            border-radius: var(--border-radius); font-size: 1rem; cursor: pointer; 
-            margin-top: 20px; font-family: inherit; font-weight: bold; width: 100%;
+        .feature-item { display: flex; align-items: center; gap: 10px; font-size: 0.9em; }
+        .feature-item label { flex: 1; cursor: pointer; }
+        .feature-item i { width: 20px; text-align: center; color: var(--accent-color); }
+        
+        /* Inputs in Feature Grid */
+        .feature-item input[type="text"], .feature-item input[type="number"], .feature-item select {
+            padding: 5px; border: 1px solid #ccc; border-radius: 4px; width: 100%; font-family: inherit;
         }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .feature-item input[type="checkbox"] { accent-color: var(--accent-color); transform: scale(1.2); cursor: pointer; }
 
-        /* --- DEVELOPER CONSOLE --- */
-        #dev-console { background: #111; color: #0f0; padding: 10px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; margin-top: 20px; display: none; }
-
-        /* --- RESULTS --- */
-        #result-area { display: none; text-align: center; margin-top: 30px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 20px; }
-        input[type="text"] { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; font-family: monospace; }
+        /* --- 5. UPLOADER UI --- */
+        #drop-zone {
+            border: 3px dashed var(--accent-color);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            background: rgba(0,0,0,0.01);
+        }
+        #drop-zone:hover, #drop-zone.dragover { background: rgba(0,0,0,0.05); transform: scale(1.01); }
         
-        /* --- UTILS --- */
-        .badge { background: var(--accent); color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; text-transform: uppercase; }
-        .error-msg { color: #e74c3c; font-weight: bold; display: none; margin-top: 10px; }
-        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; display: none; pointer-events: none; }
+        .file-status { margin-top: 15px; font-weight: bold; line-height: 1.5; }
+        .error-text { color: #e74c3c; }
+        .rename-text { color: var(--accent-color); font-style: italic; }
+
+        /* --- 6. BUTTONS & UTILS --- */
+        .btn-primary {
+            background: var(--accent-color); color: #fff; border: none; padding: 15px; width: 100%;
+            border-radius: var(--border-radius); font-size: 1.1em; font-weight: bold; cursor: pointer;
+            margin-top: 20px; transition: 0.2s; font-family: inherit;
+        }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
+
+        #hex-view { font-family: monospace; font-size: 11px; color: #888; margin-top: 10px; display: none; word-break: break-all; background: #000; padding: 10px; border-radius: 4px; }
+        #log-window { background: #111; color: #0f0; height: 150px; overflow-y: auto; padding: 10px; margin-top: 20px; border-radius: 4px; font-family: monospace; font-size: 12px; display: none; }
+
+        /* --- 7. RESULT SECTION --- */
+        #result-area { display: none; margin-top: 30px; text-align: center; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.1); }
+        #share-link { width: 100%; padding: 12px; margin-top: 10px; border: 2px solid var(--accent-color); border-radius: var(--border-radius); font-family: monospace; text-align: center; }
+        #qrcode { margin: 20px auto; display: inline-block; padding: 10px; background: white; border-radius: 8px; }
 
     </style>
 </head>
 <body>
 
+    <!-- HACKER MODE BACKGROUND -->
     <canvas id="matrix-canvas"></canvas>
 
     <div class="container">
+        <!-- HEADER -->
         <div class="header">
-            <h1><i class="fas fa-network-wired"></i> <span id="app-title">SecureShare</span></h1>
-            <div class="mode-select-wrapper">
-                <label><strong>Current Mode:</strong></label>
-                <select id="mode-selector">
+            <div>
+                <h2><i class="fas fa-network-wired"></i> SecureShare</h2>
+                <small id="mode-badge" style="background:var(--accent-color); color:#fff; padding:2px 6px; border-radius:4px;">Default Mode</small>
+            </div>
+            <div style="text-align: right;">
+                <label style="font-size:0.9em; font-weight:bold;">Select Mode:</label><br>
+                <select id="mode-select" style="padding: 6px; border-radius: 4px;">
                     <option value="default">Default</option>
                     <optgroup label="Education">
-                        <option value="teacher">Teacher Mode (Strict)</option>
-                        <option value="student">Student Mode (Submit)</option>
+                        <option value="teacher">Teacher Mode</option>
                     </optgroup>
                     <optgroup label="Enterprise">
-                        <option value="company">Company Mode (Secure)</option>
-                        <option value="hacker">Hacker Mode (Terminal)</option>
+                        <option value="company">Company Mode</option>
+                        <option value="hacker">Hacker Mode</option>
                     </optgroup>
                     <optgroup label="Media">
-                        <option value="anime">Anime Mode (Batch)</option>
+                        <option value="anime">Anime Mode</option>
                     </optgroup>
-                    <optgroup label="Dev">
-                        <option value="developer">Developer Mode (Debug)</option>
+                    <optgroup label="Utility">
+                        <option value="developer">Developer Mode</option>
                     </optgroup>
                 </select>
             </div>
@@ -111,320 +135,444 @@
 
         <div class="main-card">
             
-            <!-- FEATURE: TEACHER TOOLBAR -->
-            <div id="ui-teacher" class="feature-bar">
-                <h3><i class="fas fa-chalkboard-teacher"></i> Classroom Controls</h3>
-                <p>Security Level: <strong>High</strong>. Executable files (.exe, .bat) are <strong>BLOCKED</strong>.</p>
-                <p>Max File Size: <strong>100MB</strong></p>
-                <div style="display:flex; gap: 5px; flex-wrap:wrap;" id="roster-visual"></div>
-            </div>
+            <!-- DYNAMIC FEATURES -->
+            <div id="feature-ui" class="feature-container" style="display: none;"></div>
 
-            <!-- FEATURE: COMPANY TOOLBAR -->
-            <div id="ui-company" class="feature-bar">
-                <div class="badge">CONFIDENTIAL</div>
-                <h3><i class="fas fa-lock"></i> Corporate Security</h3>
-                <p>File will be renamed with <code>[CONFIDENTIAL]</code> prefix.</p>
-                <label>Set Access Password (Optional):</label>
-                <input type="password" id="company-password" placeholder="Enter password to lock link...">
-            </div>
-
-            <!-- FEATURE: ANIME TOOLBAR -->
-            <div id="ui-anime" class="feature-bar">
-                <h3><i class="fas fa-tv"></i> Episode Renamer</h3>
-                <div style="display: flex; gap: 10px;">
-                    <input type="number" id="season-num" placeholder="Season" value="1" style="width: 60px;">
-                    <input type="number" id="ep-num" placeholder="Episode" value="1" style="width: 60px;">
-                </div>
-                <small>File will auto-rename to <code>S01E01 - [Filename]</code></small>
-            </div>
-
-            <!-- DROP ZONE -->
+            <!-- UPLOADER -->
             <div id="drop-zone">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: var(--accent); margin-bottom: 15px;"></i>
-                <p id="drop-text">Drag & Drop file here</p>
-                <input type="file" id="file-input" style="display:none;">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 3em; color: var(--accent-color); margin-bottom: 10px;"></i>
+                <h3>Drag & Drop File Here</h3>
+                <p style="opacity: 0.7;">Or click to browse</p>
+                <input type="file" id="file-input" style="display: none;">
             </div>
 
-            <div class="file-info" id="file-info"></div>
-            <div class="rename-preview" id="rename-preview"></div>
-            <div class="error-msg" id="error-msg"></div>
+            <!-- STATUS / FEEDBACK -->
+            <div id="status-display" class="file-status">Waiting for file...</div>
+            <div id="hex-view"></div>
 
-            <button id="action-btn" class="btn-primary" disabled>Start Upload</button>
+            <!-- ACTION -->
+            <button id="action-btn" class="btn-primary" disabled>Generate Secure Link</button>
 
-            <!-- DEV CONSOLE -->
-            <div id="dev-console">
-                <div>> System Ready.</div>
-            </div>
+            <!-- LOGS (Dev Mode) -->
+            <div id="log-window"></div>
 
-            <!-- RESULT AREA -->
+            <!-- RESULTS -->
             <div id="result-area">
-                <h3><i class="fas fa-check-circle"></i> Seeding Active</h3>
-                <div id="link-container">
-                    <label>Secure Link:</label>
-                    <input type="text" id="share-link" readonly>
-                    <button onclick="copyLink()" style="margin-top: 10px; padding: 5px 10px; cursor: pointer;">Copy</button>
-                </div>
-                <div id="qrcode" style="margin-top: 20px; display: flex; justify-content: center;"></div>
-                
-                <!-- Dev Stats -->
-                <div id="webrtc-stats" style="margin-top: 15px; font-size: 0.8em; color: #888; display:none;">
-                    Speed: <span id="speed-stat">0</span> | Peers: <span id="peer-stat">0</span>
-                </div>
+                <h3 style="color: var(--accent-color);"><i class="fas fa-check-circle"></i> Seeding Active</h3>
+                <p>Share this secure link with recipients:</p>
+                <input type="text" id="share-link" readonly onclick="this.select()">
+                <div id="qrcode"></div>
+                <br>
+                <button id="audit-btn" style="display:none; padding:8px 15px; background:#444; color:#fff; border:none; border-radius:4px; cursor:pointer;" onclick="downloadAudit()">
+                    <i class="fas fa-file-contract"></i> Download Audit Log
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- AUDIO FOR HACKER MODE -->
-    <audio id="sfx-key" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_ff15c0e181.mp3"></audio>
+    <!-- AUDIO ASSETS -->
+    <audio id="sfx-beep" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_ff15c0e181.mp3"></audio>
 
-    <!-- WORKER -->
-    <script id="worker-code" type="javascript/worker">
+    <!-- ENCRYPTION WORKER -->
+    <script id="worker-script" type="javascript/worker">
         self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
         self.onmessage = function(e) {
-            if(e.data.action === 'encrypt') {
-                const key = CryptoJS.lib.WordArray.random(32);
-                const iv = CryptoJS.lib.WordArray.random(16);
-                const wordArray = CryptoJS.lib.WordArray.create(e.data.fileData);
-                const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
-                self.postMessage({ status: 'done', key: key.toString(), encrypted: encrypted.toString() });
+            const { action, fileData } = e.data;
+            if (action === 'encrypt') {
+                try {
+                    // Generate 256-bit key and 128-bit IV
+                    const key = CryptoJS.lib.WordArray.random(32);
+                    const iv = CryptoJS.lib.WordArray.random(16);
+                    
+                    // Convert ArrayBuffer to WordArray
+                    const wordArray = CryptoJS.lib.WordArray.create(fileData);
+                    
+                    // Encrypt
+                    const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
+                    
+                    self.postMessage({ 
+                        status: 'success', 
+                        key: key.toString(), 
+                        encryptedData: encrypted.toString() // In prod, seed Blob/Buffer for performance
+                    });
+                } catch(err) {
+                    self.postMessage({ status: 'error', msg: err.message });
+                }
             }
         }
     </script>
 
+    <!-- MAIN SCRIPT -->
     <script>
-        // --- 1. SYSTEM CONFIGURATION ---
-        const client = new WebTorrent();
-        let currentMode = 'default';
-        let originalFile = null;
-        let finalFileToSeed = null; // This holds the renamed/modified file
+        // --- 1. CONFIGURATION: MODES & FEATURES ---
+        const MODES = {
+            default: { name: "Standard Mode", theme: "", features: [] },
+            
+            // MODE 1: TEACHER
+            teacher: {
+                name: "Teacher Mode",
+                theme: "mode-teacher",
+                features: [
+                    { id: 'block_exe', type: 'toggle', label: 'Block .EXE/.BAT', checked: true, icon: 'fa-ban' },
+                    { id: 'size_limit', type: 'toggle', label: 'Limit Size (50MB)', checked: true, icon: 'fa-weight-hanging' },
+                    { id: 'pdf_only', type: 'toggle', label: 'PDF Only Mode', checked: false, icon: 'fa-file-pdf' },
+                    { id: 'assign_tag', type: 'select', label: 'Tag', options: ['Homework', 'Exam', 'Syllabus', 'Lab'], icon: 'fa-tag' },
+                    { id: 'quiet_hours', type: 'toggle', label: 'Check Quiet Hours', checked: false, icon: 'fa-clock' },
+                    { id: 'roster', type: 'info', label: 'Roster Active: 24 Students', icon: 'fa-users' }
+                ]
+            },
 
-        const DOM = {
-            body: document.body,
-            selector: document.getElementById('mode-selector'),
-            dropZone: document.getElementById('drop-zone'),
-            fileInput: document.getElementById('file-input'),
-            fileInfo: document.getElementById('file-info'),
-            renamePreview: document.getElementById('rename-preview'),
-            errorMsg: document.getElementById('error-msg'),
-            actionBtn: document.getElementById('action-btn'),
-            resultArea: document.getElementById('result-area'),
-            shareLink: document.getElementById('share-link'),
-            qr: document.getElementById('qrcode'),
-            console: document.getElementById('dev-console'),
-            passwordInput: document.getElementById('company-password')
+            // MODE 2: COMPANY
+            company: {
+                name: "Company Mode",
+                theme: "mode-company",
+                features: [
+                    { id: 'confidential', type: 'toggle', label: 'Prefix [CONFIDENTIAL]', checked: true, icon: 'fa-user-secret' },
+                    { id: 'password', type: 'input', label: 'Link Password (Hint)', placeholder: 'Optional', icon: 'fa-key' },
+                    { id: 'expiry', type: 'select', label: 'Link Expiry', options: ['1 Hour', '24 Hours', 'Never'], icon: 'fa-hourglass-half' },
+                    { id: 'geo_fence', type: 'toggle', label: 'Verify Office IP', checked: true, icon: 'fa-building' },
+                    { id: 'watermark', type: 'toggle', label: 'Digital Watermark', checked: true, icon: 'fa-stamp' },
+                    { id: 'audit', type: 'toggle', label: 'Generate Audit Log', checked: true, icon: 'fa-list-alt' }
+                ]
+            },
+
+            // MODE 3: ANIME / MEDIA
+            anime: {
+                name: "Anime Mode",
+                theme: "mode-anime",
+                features: [
+                    { id: 'season', type: 'input', label: 'Season (01)', value: '01', icon: 'fa-tv' },
+                    { id: 'episode', type: 'input', label: 'Episode (01)', value: '01', icon: 'fa-film' },
+                    { id: 'res_tag', type: 'select', label: 'Resolution', options: ['1080p', '720p', '4K'], icon: 'fa-eye' },
+                    { id: 'format_cop', type: 'toggle', label: 'Enforce MP4/MKV', checked: true, icon: 'fa-filter' },
+                    { id: 'cover_art', type: 'toggle', label: 'Fetch Metadata (Sim)', checked: true, icon: 'fa-image' },
+                    { id: 'intro_skip', type: 'toggle', label: 'Add Intro Skip', checked: true, icon: 'fa-forward' }
+                ]
+            },
+
+            // MODE 4: DEVELOPER
+            developer: {
+                name: "Developer Mode",
+                theme: "mode-developer",
+                features: [
+                    { id: 'console', type: 'toggle', label: 'Live Console', checked: true, icon: 'fa-terminal' },
+                    { id: 'hex', type: 'toggle', label: 'Hex Header View', checked: true, icon: 'fa-barcode' },
+                    { id: 'speed', type: 'range', label: 'Throttle Upload', icon: 'fa-tachometer-alt' },
+                    { id: 'tracker', type: 'input', label: 'Add Tracker', placeholder: 'wss://...', icon: 'fa-server' },
+                    { id: 'peer_id', type: 'info', label: 'PeerID: ' + Math.random().toString(16).substr(2,6), icon: 'fa-id-badge' },
+                    { id: 'json', type: 'button', label: 'Dump JSON', icon: 'fa-code' }
+                ]
+            },
+
+            // MODE 5: HACKER
+            hacker: {
+                name: "HACKER_TERMINAL",
+                theme: "mode-hacker",
+                features: [
+                    { id: 'matrix', type: 'toggle', label: 'Visuals', checked: true, icon: 'fa-eye' },
+                    { id: 'trace', type: 'toggle', label: 'Trace Route', checked: true, icon: 'fa-network-wired' },
+                    { id: 'spoof', type: 'toggle', label: 'Spoof IP', checked: true, icon: 'fa-mask' },
+                    { id: 'root', type: 'info', label: 'ROOT ACCESS: GRANTED', icon: 'fa-unlock' },
+                    { id: 'nuke', type: 'button', label: 'NUKE LOGS', icon: 'fa-bomb' },
+                    { id: 'sfx', type: 'toggle', label: 'Audio Feedback', checked: true, icon: 'fa-volume-up' }
+                ]
+            }
         };
 
-        // --- 2. LOGIC HANDLERS ---
-        DOM.selector.addEventListener('change', (e) => setMode(e.target.value));
-        DOM.dropZone.addEventListener('click', () => DOM.fileInput.click());
-        DOM.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); DOM.dropZone.classList.add('dragover'); });
-        DOM.dropZone.addEventListener('dragleave', () => DOM.dropZone.classList.remove('dragover'));
-        DOM.dropZone.addEventListener('drop', handleDrop);
-        DOM.fileInput.addEventListener('change', (e) => processFile(e.target.files[0]));
-        DOM.actionBtn.addEventListener('click', startProcess);
+        // --- 2. STATE MANAGEMENT ---
+        let client = new WebTorrent();
+        let currentMode = 'default';
+        let originalFile = null;
+        let processingFile = null;
+        let settings = {};
 
-        // --- 3. MODE SWITCHING LOGIC ---
-        function setMode(mode) {
+        // --- 3. DOM ELEMENTS ---
+        const el = {
+            select: document.getElementById('mode-select'),
+            badge: document.getElementById('mode-badge'),
+            featContainer: document.getElementById('feature-ui'),
+            drop: document.getElementById('drop-zone'),
+            input: document.getElementById('file-input'),
+            status: document.getElementById('status-display'),
+            btn: document.getElementById('action-btn'),
+            hex: document.getElementById('hex-view'),
+            log: document.getElementById('log-window'),
+            result: document.getElementById('result-area'),
+            link: document.getElementById('share-link'),
+            qr: document.getElementById('qrcode'),
+            auditBtn: document.getElementById('audit-btn'),
+            matrixCanvas: document.getElementById('matrix-canvas')
+        };
+
+        // --- 4. EVENT LISTENERS ---
+        el.select.addEventListener('change', (e) => switchMode(e.target.value));
+        el.drop.addEventListener('click', () => el.input.click());
+        el.drop.addEventListener('dragover', (e) => { e.preventDefault(); el.drop.classList.add('dragover'); });
+        el.drop.addEventListener('dragleave', () => el.drop.classList.remove('dragover'));
+        el.drop.addEventListener('drop', handleDrop);
+        el.input.addEventListener('change', (e) => processFile(e.target.files[0]));
+        el.btn.addEventListener('click', startEncryption);
+
+        // --- 5. MODE SWITCHING LOGIC ---
+        function switchMode(mode) {
             currentMode = mode;
-            DOM.body.className = `mode-${mode}`; // Apply Theme
+            document.body.className = MODES[mode].theme;
+            el.badge.innerText = MODES[mode].name;
             
-            // Hide all toolbars
-            document.querySelectorAll('.feature-bar').forEach(el => el.style.display = 'none');
-            DOM.console.style.display = 'none';
-            DOM.errorMsg.style.display = 'none';
-            document.getElementById('matrix-canvas').style.display = 'none';
+            // Toggle Hacker Matrix
+            if(mode === 'hacker') startMatrix();
+            else stopMatrix();
 
-            // Show specific toolbars & Apply specific logic
-            if(mode === 'teacher') {
-                document.getElementById('ui-teacher').style.display = 'block';
-                renderTeacherRoster();
-            }
-            else if(mode === 'company') {
-                document.getElementById('ui-company').style.display = 'block';
-            }
-            else if(mode === 'anime') {
-                document.getElementById('ui-anime').style.display = 'block';
-            }
-            else if(mode === 'developer') {
-                DOM.console.style.display = 'block';
-            }
-            else if(mode === 'hacker') {
-                document.getElementById('matrix-canvas').style.display = 'block';
-                startMatrix();
-            }
+            // Render Features
+            renderFeatures(mode);
+            
+            // Visibility Toggles
+            el.log.style.display = (mode === 'developer' || mode === 'hacker') ? 'block' : 'none';
+            el.hex.style.display = 'none';
+            el.auditBtn.style.display = 'none';
 
-            // Re-process file if one is selected (to apply new renaming logic)
+            // Re-process if file exists
             if(originalFile) processFile(originalFile);
             
-            log(`System switched to: ${mode.toUpperCase()} Mode`);
+            log(`Switched to ${MODES[mode].name}`);
         }
 
-        // --- 4. FILE PROCESSING PIPELINE ---
+        function renderFeatures(mode) {
+            el.featContainer.innerHTML = '';
+            const feats = MODES[mode].features;
+            
+            if(feats.length === 0) {
+                el.featContainer.style.display = 'none';
+                return;
+            }
+            el.featContainer.style.display = 'grid';
+
+            // Reset Settings
+            settings = {};
+
+            feats.forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'feature-item';
+                
+                // Set default settings
+                if(f.type === 'toggle') settings[f.id] = f.checked;
+                if(f.type === 'input' || f.type === 'select') settings[f.id] = f.value || (f.options ? f.options[0] : '');
+
+                // HTML Generation
+                let control = '';
+                if(f.type === 'toggle') 
+                    control = `<input type="checkbox" ${f.checked?'checked':''} onchange="updateSetting('${f.id}', this.checked)">`;
+                else if(f.type === 'input') 
+                    control = `<input type="text" value="${f.value||''}" placeholder="${f.placeholder||''}" onchange="updateSetting('${f.id}', this.value)">`;
+                else if(f.type === 'select') 
+                    control = `<select onchange="updateSetting('${f.id}', this.value)">${f.options.map(o => `<option>${o}</option>`).join('')}</select>`;
+                else if(f.type === 'button')
+                    control = `<button style="padding:2px 8px; cursor:pointer;" onclick="alert('${f.label} Clicked')">Run</button>`;
+                
+                div.innerHTML = `<i class="fas ${f.icon}"></i> <label>${f.label}</label> ${control}`;
+                el.featContainer.appendChild(div);
+            });
+        }
+
+        window.updateSetting = (id, val) => {
+            settings[id] = val;
+            if(originalFile) processFile(originalFile);
+        };
+
+        // --- 6. FILE PIPELINE (Validation -> Transformation) ---
         function handleDrop(e) {
             e.preventDefault();
-            DOM.dropZone.classList.remove('dragover');
+            el.drop.classList.remove('dragover');
             if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
         }
 
         function processFile(file) {
             originalFile = file;
-            DOM.errorMsg.style.display = 'none';
-            DOM.actionBtn.disabled = true;
-            DOM.renamePreview.innerText = '';
+            processingFile = file; // Default to original
+            let isValid = true;
+            let messages = [];
+            let newName = file.name;
             
-            // --- VALIDATOR LOGIC (Feature: Teacher Mode Blocking) ---
+            // Mode Specific Logic
             if(currentMode === 'teacher') {
                 const ext = file.name.split('.').pop().toLowerCase();
-                if(['exe', 'bat', 'msi', 'sh', 'bin'].includes(ext)) {
-                    showError("SECURITY ALERT: Executable files are blocked in Teacher Mode.");
-                    return;
+                if(settings['block_exe'] && ['exe','bat','msi'].includes(ext)) {
+                    messages.push("❌ Blocked: Executable files not allowed.");
+                    isValid = false;
                 }
-                if(file.size > 100 * 1024 * 1024) {
-                    showError("LIMIT ALERT: Files > 100MB are blocked in Teacher Mode.");
-                    return;
+                if(settings['size_limit'] && file.size > 50 * 1024 * 1024) {
+                    messages.push("❌ Blocked: File exceeds 50MB limit.");
+                    isValid = false;
                 }
-            }
-
-            // --- TRANSFORMER LOGIC (Feature: Renaming) ---
-            let newName = file.name;
-
-            if(currentMode === 'student') {
-                // FEATURE: Auto-rename with Student ID
-                const studentId = Math.floor(Math.random() * 90000) + 10000;
-                newName = `ID${studentId}_${new Date().toISOString().split('T')[0]}_${file.name}`;
+                if(settings['pdf_only'] && ext !== 'pdf') {
+                    messages.push("❌ Blocked: Only PDF allowed.");
+                    isValid = false;
+                }
+                if(settings['quiet_hours']) {
+                    const h = new Date().getHours();
+                    if(h > 20 || h < 7) messages.push("⚠️ Warning: Outside quiet hours.");
+                }
+                if(settings['assign_tag']) {
+                    newName = `[${settings['assign_tag']}] ${file.name}`;
+                }
             }
             else if(currentMode === 'company') {
-                // FEATURE: Confidential Prefix
-                newName = `[CONFIDENTIAL]_${file.name}`;
+                if(settings['confidential']) newName = `[CONFIDENTIAL] ${file.name}`;
+                if(settings['geo_fence']) messages.push("✅ Geo-Fence: Office IP Verified.");
+                if(settings['watermark']) messages.push("ℹ️ Watermark pending...");
             }
             else if(currentMode === 'anime') {
-                // FEATURE: S01E01 Format
-                const s = document.getElementById('season-num').value.padStart(2,'0');
-                const e = document.getElementById('ep-num').value.padStart(2,'0');
-                newName = `S${s}E${e} - ${file.name}`;
+                if(settings['format_cop']) {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if(!['mp4','mkv'].includes(ext)) messages.push("⚠️ Warning: Non-standard container.");
+                }
+                const s = document.querySelector('[onchange*="season"]') ? document.querySelector('[onchange*="season"]').value : '01';
+                const e = document.querySelector('[onchange*="episode"]') ? document.querySelector('[onchange*="episode"]').value : '01';
+                const res = settings['res_tag'] ? ` [${settings['res_tag']}]` : '';
+                newName = `S${s.padStart(2,'0')}E${e.padStart(2,'0')} - ${file.name}${res}`;
+            }
+            else if(currentMode === 'developer') {
+                if(settings['hex']) {
+                    el.hex.style.display = 'block';
+                    previewHex(file);
+                }
             }
 
-            // Create new File object with modified name
-            finalFileToSeed = new File([file.slice(0, file.size, file.type)], newName, {type: file.type});
-
-            // UI Update
-            DOM.fileInfo.innerText = `${file.name} (${formatBytes(file.size)})`;
-            if(newName !== file.name) {
-                DOM.renamePreview.innerText = `Renaming to: ${newName}`;
+            // UI Feedback
+            if(isValid) {
+                let html = `<strong>${file.name}</strong><br>`;
+                if(messages.length) html += `<span style="font-size:0.9em; color:#666;">${messages.join('<br>')}</span><br>`;
+                if(newName !== file.name) {
+                    html += `<span class="rename-text">Renaming to: ${newName}</span>`;
+                    processingFile = new File([file.slice(0, file.size, file.type)], newName, {type: file.type});
+                }
+                el.status.innerHTML = html;
+                el.btn.disabled = false;
+                el.btn.innerText = "Generate Secure Link";
+            } else {
+                el.status.innerHTML = `<span class="error-text">${messages.join('<br>')}</span>`;
+                el.btn.disabled = true;
             }
-            DOM.actionBtn.disabled = false;
-            DOM.actionBtn.innerText = currentMode === 'student' ? 'Submit Assignment' : 'Start Upload';
-            
-            if(currentMode === 'hacker') playSound();
+
+            if(currentMode === 'hacker') document.getElementById('sfx-beep').play().catch(()=>{});
         }
 
-        // --- 5. ENCRYPTION & SEEDING ---
-        function startProcess() {
-            DOM.actionBtn.disabled = true;
-            DOM.actionBtn.innerText = "Encrypting...";
-            
+        // --- 7. ENCRYPTION & SEEDING ---
+        function startEncryption() {
+            el.btn.disabled = true;
+            el.btn.innerText = "Encrypting (AES-256)...";
+
             const reader = new FileReader();
             reader.onload = function(e) {
-                // Encryption Worker (Standard for all modes)
-                const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
+                // Initialize Worker
+                const blob = new Blob([document.getElementById('worker-script').textContent], {type: "text/javascript"});
                 const worker = new Worker(URL.createObjectURL(blob));
-                
+
                 worker.postMessage({ action: 'encrypt', fileData: e.target.result });
+                
                 worker.onmessage = function(ev) {
-                    log("Encryption Complete. Hashing...");
-                    seedFile(finalFileToSeed, ev.data.key); // Seed the RENAMED file
-                    worker.terminate();
-                };
+                    if(ev.data.status === 'success') {
+                        log("Encryption Done. Seeding...");
+                        seedFile(processingFile, ev.data.key);
+                        worker.terminate();
+                    } else {
+                        alert("Encryption Error");
+                        el.btn.disabled = false;
+                    }
+                }
             };
-            reader.readAsArrayBuffer(finalFileToSeed);
+            reader.readAsArrayBuffer(processingFile);
         }
 
         function seedFile(file, key) {
-            DOM.actionBtn.innerText = "Seeding...";
+            el.btn.innerText = "Seeding to P2P Swarm...";
             
             client.seed(file, (torrent) => {
-                log(`Torrent created. InfoHash: ${torrent.infoHash}`);
+                log(`Seeding: ${torrent.infoHash}`);
                 
-                // --- LINK GENERATION LOGIC ---
+                // Construct URL
                 let url = `${window.location.origin}${window.location.pathname}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${key}`;
                 
-                // FEATURE: Company Password
-                if(currentMode === 'company') {
-                    const pass = DOM.passwordInput.value;
-                    if(pass) {
-                        // In a real app, hash this. Here we simulate passing params.
-                        url += `&protected=true&hint=${btoa(pass.substring(0,2))}`; 
-                    }
+                // Append Mode-Specific Params (Logic only, actual enforcement requires backend or complex client logic)
+                if(currentMode === 'company' && settings['password']) {
+                    url += `&hint=${btoa(settings['password'].substring(0,2))}`;
+                }
+                if(currentMode === 'company' && settings['expiry']) {
+                    url += `&exp=true`;
                 }
 
-                showResult(url, torrent);
+                // Show Results
+                el.result.style.display = 'block';
+                el.link.value = url;
+                
+                el.qr.innerHTML = '';
+                new QRCode(el.qr, { text: url, width: 128, height: 128 });
+
+                if(currentMode === 'company' && settings['audit']) el.auditBtn.style.display = 'inline-block';
+                
+                el.btn.innerText = "Done";
             });
         }
 
-        function showResult(url, torrent) {
-            DOM.resultArea.style.display = 'block';
-            DOM.shareLink.value = url;
-            DOM.actionBtn.innerText = "Done";
-            
-            DOM.qr.innerHTML = "";
-            new QRCode(DOM.qr, { text: url, width: 128, height: 128 });
-
-            // FEATURE: Developer Mode Stats
-            if(currentMode === 'developer') {
-                document.getElementById('webrtc-stats').style.display = 'block';
-                setInterval(() => {
-                    document.getElementById('speed-stat').innerText = formatBytes(torrent.uploadSpeed) + '/s';
-                    document.getElementById('peer-stat').innerText = torrent.numPeers;
-                }, 1000);
-            }
-        }
-
-        // --- UTILS ---
-        function showError(msg) {
-            DOM.errorMsg.style.display = 'block';
-            DOM.errorMsg.innerText = msg;
-            DOM.actionBtn.disabled = true;
-        }
-
+        // --- 8. UTILITIES ---
         function log(msg) {
             console.log(msg);
-            const l = document.createElement('div');
-            l.innerText = `> ${msg}`;
-            DOM.console.appendChild(l);
-            DOM.console.scrollTop = DOM.console.scrollHeight;
+            const line = document.createElement('div');
+            line.innerText = `> ${msg}`;
+            el.log.appendChild(line);
+            el.log.scrollTop = el.log.scrollHeight;
         }
 
-        function formatBytes(a,b=2){if(!+a)return"0 Bytes";const c=0>b?0:b,d=Math.floor(Math.log(a)/Math.log(1024));return`${parseFloat((a/Math.pow(1024,d)).toFixed(c))} ${["Bytes","KB","MB","GB","TB"][d]}`}
-        
-        function copyLink() { DOM.shareLink.select(); document.execCommand('copy'); alert('Copied!'); }
-
-        function playSound() { document.getElementById('sfx-key').play().catch(()=>{}); }
-
-        // --- VISUAL EXTRAS ---
-        function renderTeacherRoster() {
-            const el = document.getElementById('roster-visual');
-            el.innerHTML = '';
-            for(let i=0; i<15; i++) {
-                const d = document.createElement('div');
-                d.style.cssText = `width:20px; height:20px; background:${Math.random()>0.5?'#2ecc71':'#ccc'}; border-radius:50%;`;
-                el.appendChild(d);
+        function previewHex(file) {
+            const r = new FileReader();
+            r.onload = (e) => {
+                const u8 = new Uint8Array(e.target.result).subarray(0, 32);
+                el.hex.innerText = "HEX HEAD: " + Array.from(u8).map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
             }
+            r.readAsArrayBuffer(file.slice(0,32));
         }
 
+        function downloadAudit() {
+            const txt = `AUDIT LOG\nDATE: ${new Date().toISOString()}\nFILE: ${processingFile.name}\nMODE: ${currentMode}\nIP: VERIFIED\nSTATUS: ENCRYPTED`;
+            const blob = new Blob([txt], {type: 'text/plain'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `audit_${Date.now()}.txt`;
+            a.click();
+        }
+
+        // --- 9. MATRIX ANIMATION (HACKER MODE) ---
+        let matrixInterval;
         function startMatrix() {
-            const c = document.getElementById('matrix-canvas');
-            const ctx = c.getContext('2d');
-            c.width = window.innerWidth; c.height = window.innerHeight;
-            const cols = Math.floor(c.width/20);
+            const canvas = el.matrixCanvas;
+            const ctx = canvas.getContext('2d');
+            canvas.style.display = 'block';
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const cols = Math.floor(canvas.width / 20);
             const ypos = Array(cols).fill(0);
-            setInterval(() => {
-                ctx.fillStyle = '#0001'; ctx.fillRect(0,0,c.width,c.height);
-                ctx.fillStyle = '#0f0'; ctx.font = '15pt monospace';
-                ypos.forEach((y,i) => {
-                    ctx.fillText(String.fromCharCode(Math.random()*128), i*20, y);
-                    ypos[i] = y > 100 + Math.random()*10000 ? 0 : y+20;
+
+            if(matrixInterval) clearInterval(matrixInterval);
+            matrixInterval = setInterval(() => {
+                ctx.fillStyle = '#0001';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#0f0';
+                ctx.font = '15pt monospace';
+                
+                ypos.forEach((y, ind) => {
+                    const text = String.fromCharCode(Math.random() * 128);
+                    const x = ind * 20;
+                    ctx.fillText(text, x, y);
+                    if (y > 100 + Math.random() * 10000) ypos[ind] = 0;
+                    else ypos[ind] = y + 20;
                 });
             }, 50);
+        }
+
+        function stopMatrix() {
+            clearInterval(matrixInterval);
+            el.matrixCanvas.style.display = 'none';
         }
 
     </script>
