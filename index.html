@@ -3,641 +3,426 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P Secure Multi-Mode Sharer</title>
+    <title>Multi-Mode Secure P2P</title>
     
-    <!-- External Libraries -->
+    <!-- CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* --- 1. CORE VARIABLES & DEFAULTS --- */
+        /* --- CORE VARIABLES --- */
         :root {
-            --font-main: 'Segoe UI', 'Roboto', sans-serif;
-            --bg-color: #f0f2f5;
-            --text-color: #333;
-            --card-bg: rgba(255, 255, 255, 0.9);
-            --accent-color: #007bff;
-            --border-radius: 12px;
-            --border-color: rgba(0,0,0,0.1);
-            --shadow: 0 8px 32px rgba(0,0,0,0.1);
-            --transition: all 0.4s ease;
-        }
-
-        body {
-            font-family: var(--font-main);
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-            transition: var(--transition);
-            overflow-x: hidden;
-        }
-
-        /* --- 2. THEME MODES (CSS Variables) --- */
-
-        /* Category 1: TEACHER MODE */
-        body.mode-teacher {
-            --bg-color: #e3f2fd;
-            --text-color: #1565c0;
+            --bg-color: #f4f6f8;
             --card-bg: #ffffff;
-            --accent-color: #1976d2;
-            --font-main: 'Verdana', sans-serif;
-            --border-radius: 6px;
+            --text-main: #2d3436;
+            --accent: #0984e3;
+            --border-radius: 12px;
+            --font-stack: 'Segoe UI', system-ui, sans-serif;
+            --shadow: 0 10px 30px rgba(0,0,0,0.08);
         }
 
-        /* Category 2: COMPANY MODE */
-        body.mode-company {
-            --bg-color: #2c3e50;
-            --text-color: #ecf0f1;
-            --card-bg: #34495e;
-            --accent-color: #e67e22;
-            --font-main: 'Arial', sans-serif;
-            --border-radius: 2px;
-            --border-color: #5d6d7e;
-        }
+        /* --- THEME MODES --- */
+        body.mode-teacher { --bg-color: #e3f2fd; --accent: #1976d2; --font-stack: 'Verdana', sans-serif; }
+        body.mode-student { --bg-color: #f1f8e9; --accent: #7cb342; --font-stack: 'Verdana', sans-serif; }
+        body.mode-company { --bg-color: #2c3e50; --card-bg: #34495e; --text-main: #ecf0f1; --accent: #e67e22; --border-radius: 4px; }
+        body.mode-anime { --bg-color: #240046; --card-bg: rgba(60, 9, 108, 0.9); --text-main: #e0aaff; --accent: #ff006e; --border-radius: 25px; }
+        body.mode-hacker { --bg-color: #000; --card-bg: #001100; --text-main: #0f0; --accent: #0f0; --font-stack: 'Courier New', monospace; --border-radius: 0; }
+        body.mode-developer { --bg-color: #1e1e1e; --card-bg: #2d2d2d; --text-main: #d4d4d4; --accent: #007acc; --font-stack: 'Consolas', monospace; }
 
-        /* Category 2: HACKER MODE */
-        body.mode-hacker {
-            --bg-color: #000;
-            --text-color: #0f0;
-            --card-bg: rgba(0, 20, 0, 0.85);
-            --accent-color: #0f0;
-            --font-main: 'Courier New', monospace;
-            --border-radius: 0;
-            --border-color: #0f0;
-            --shadow: 0 0 15px #0f0;
-        }
-
-        /* Category 3: ANIME MODE */
-        body.mode-anime {
-            --bg-color: #240046;
-            --text-color: #e0aaff;
-            --card-bg: rgba(60, 9, 108, 0.7);
-            --accent-color: #ff006e;
-            --font-main: 'Comic Sans MS', sans-serif; /* Stylistic choice */
-            --border-radius: 25px;
-            background-image: radial-gradient(circle, #3c096c 0%, #10002b 100%);
-        }
-
-        /* Category 4: DEVELOPER MODE */
-        body.mode-developer {
-            --bg-color: #1e1e1e;
-            --text-color: #d4d4d4;
-            --card-bg: #252526;
-            --accent-color: #007acc;
-            --font-main: 'Consolas', monospace;
-            --border-radius: 0;
-            --border-color: #3e3e42;
-        }
-
-        /* --- 3. LAYOUT & COMPONENTS --- */
-        .container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 30px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(10px);
-            transition: var(--transition);
-        }
-
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { margin: 0; font-size: 2rem; }
+        /* --- LAYOUT --- */
+        body { margin: 0; padding: 20px; font-family: var(--font-stack); background: var(--bg-color); color: var(--text-main); transition: 0.3s; }
+        .container { max-width: 850px; margin: 0 auto; }
         
-        .mode-badge {
-            display: inline-block;
-            background: var(--accent-color);
-            color: var(--card-bg); /* Inverted for contrast */
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-top: 5px;
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .mode-select-wrapper { background: var(--card-bg); padding: 10px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
+        select { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit; }
+
+        .main-card { background: var(--card-bg); padding: 30px; border-radius: var(--border-radius); box-shadow: var(--shadow); position: relative; overflow: hidden; }
+
+        /* --- DYNAMIC FEATURE TOOLBARS --- */
+        .feature-bar { 
+            display: none; /* Hidden by default */
+            background: rgba(0,0,0,0.05); 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            border-radius: var(--border-radius); 
+            border-left: 5px solid var(--accent);
         }
 
-        /* Mode Selector */
-        .mode-control-panel {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: var(--border-radius);
-            border: 1px solid var(--border-color);
-        }
-        select {
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-family: inherit;
-            cursor: pointer;
-        }
-
-        /* Upload Area */
-        #drop-zone {
-            border: 3px dashed var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 50px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        #drop-zone:hover { border-color: var(--accent-color); background: rgba(0,0,0,0.05); }
-        #drop-zone.dragover { border-color: var(--accent-color); background: rgba(0,0,0,0.1); }
+        /* --- UPLOADER --- */
+        #drop-zone { border: 3px dashed rgba(0,0,0,0.2); border-radius: var(--border-radius); padding: 40px; text-align: center; cursor: pointer; transition: 0.2s; }
+        #drop-zone:hover, #drop-zone.dragover { border-color: var(--accent); background: rgba(0,0,0,0.05); }
         
-        .file-display { font-weight: bold; margin-top: 15px; word-break: break-all; }
+        .file-info { margin-top: 15px; font-weight: bold; }
+        .rename-preview { font-size: 0.9em; color: var(--accent); margin-top: 5px; font-style: italic; }
 
-        /* Buttons */
-        button {
-            background-color: var(--accent-color);
-            color: #fff;
-            border: none;
-            padding: 12px 30px;
-            border-radius: var(--border-radius);
-            font-size: 1rem;
-            font-weight: bold;
-            font-family: inherit;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-top: 10px;
+        /* --- BUTTONS --- */
+        .btn-primary { 
+            background: var(--accent); color: white; border: none; padding: 12px 30px; 
+            border-radius: var(--border-radius); font-size: 1rem; cursor: pointer; 
+            margin-top: 20px; font-family: inherit; font-weight: bold; width: 100%;
         }
-        button:hover { filter: brightness(1.15); transform: translateY(-2px); }
-        button:disabled { background-color: #888; cursor: not-allowed; transform: none; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* --- 4. MODE SPECIFIC PANELS (Hidden by default) --- */
-        .mode-panel { display: none; margin-bottom: 20px; padding: 15px; border-radius: var(--border-radius); background: rgba(0,0,0,0.05); border: 1px solid var(--border-color); }
+        /* --- DEVELOPER CONSOLE --- */
+        #dev-console { background: #111; color: #0f0; padding: 10px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; margin-top: 20px; display: none; }
+
+        /* --- RESULTS --- */
+        #result-area { display: none; text-align: center; margin-top: 30px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 20px; }
+        input[type="text"] { width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; font-family: monospace; }
         
-        /* Teacher Roster */
-        .roster-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .student-dot { width: 35px; height: 35px; background: #bbb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8em; color: white; }
-        .student-dot.online { background: #2ecc71; }
-
-        /* Developer Console */
-        #debug-console { background: #111; color: #0f0; font-family: monospace; height: 120px; overflow-y: auto; padding: 10px; font-size: 0.8rem; border: 1px solid #333; }
-
-        /* Hacker Matrix */
-        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; display: none; }
-        body.mode-hacker #matrix-canvas { display: block; }
-
-        /* Result Area */
-        #result-area { display: none; margin-top: 20px; text-align: center; }
-        input.copy-input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid var(--border-color); background: rgba(255,255,255,0.1); color: var(--text-color); font-family: monospace; border-radius: 4px; }
-        #qrcode { margin: 15px auto; display: inline-block; padding: 10px; background: white; border-radius: 4px; }
-
-        /* Loading Spinner */
-        .loader { display: none; border: 4px solid rgba(0,0,0,0.1); border-top: 4px solid var(--accent-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* --- UTILS --- */
+        .badge { background: var(--accent); color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; text-transform: uppercase; }
+        .error-msg { color: #e74c3c; font-weight: bold; display: none; margin-top: 10px; }
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; display: none; pointer-events: none; }
 
     </style>
 </head>
 <body>
 
-    <!-- Matrix Background (Hacker Mode) -->
     <canvas id="matrix-canvas"></canvas>
 
     <div class="container">
-        <!-- HEADER & SELECTOR -->
-        <header>
-            <h1 id="app-title">Secure File Share</h1>
-            <div id="mode-badge" class="mode-badge">Standard Mode</div>
-        </header>
-
-        <div class="mode-control-panel">
-            <i class="fas fa-sliders-h"></i>
-            <label for="mode-select"><strong>System Mode:</strong></label>
-            <select id="mode-select">
-                <option value="default">Standard / Default</option>
-                <optgroup label="Category 1: Education">
-                    <option value="teacher">Teacher Mode (Classroom)</option>
-                    <option value="student">Student Mode (Submit)</option>
-                </optgroup>
-                <optgroup label="Category 2: Enterprise">
-                    <option value="company">Company Mode (Secure)</option>
-                    <option value="hacker">Hacker Mode (Terminal)</option>
-                </optgroup>
-                <optgroup label="Category 3: Media">
-                    <option value="anime">Anime Mode (Batch)</option>
-                </optgroup>
-                <optgroup label="Category 4: Utility">
-                    <option value="developer">Developer Mode (Debug)</option>
-                </optgroup>
-            </select>
+        <div class="header">
+            <h1><i class="fas fa-network-wired"></i> <span id="app-title">SecureShare</span></h1>
+            <div class="mode-select-wrapper">
+                <label><strong>Current Mode:</strong></label>
+                <select id="mode-selector">
+                    <option value="default">Default</option>
+                    <optgroup label="Education">
+                        <option value="teacher">Teacher Mode (Strict)</option>
+                        <option value="student">Student Mode (Submit)</option>
+                    </optgroup>
+                    <optgroup label="Enterprise">
+                        <option value="company">Company Mode (Secure)</option>
+                        <option value="hacker">Hacker Mode (Terminal)</option>
+                    </optgroup>
+                    <optgroup label="Media">
+                        <option value="anime">Anime Mode (Batch)</option>
+                    </optgroup>
+                    <optgroup label="Dev">
+                        <option value="developer">Developer Mode (Debug)</option>
+                    </optgroup>
+                </select>
+            </div>
         </div>
 
-        <!-- MAIN CARD -->
-        <div class="card">
+        <div class="main-card">
             
-            <!-- DYNAMIC PANELS -->
-            
-            <!-- Teacher Panel -->
-            <div id="panel-teacher" class="mode-panel">
-                <h3><i class="fas fa-chalkboard-teacher"></i> Classroom Dashboard</h3>
-                <p>Broadcasting to <span id="student-count">0</span> local students.</p>
-                <div class="roster-grid" id="roster-display"></div>
+            <!-- FEATURE: TEACHER TOOLBAR -->
+            <div id="ui-teacher" class="feature-bar">
+                <h3><i class="fas fa-chalkboard-teacher"></i> Classroom Controls</h3>
+                <p>Security Level: <strong>High</strong>. Executable files (.exe, .bat) are <strong>BLOCKED</strong>.</p>
+                <p>Max File Size: <strong>100MB</strong></p>
+                <div style="display:flex; gap: 5px; flex-wrap:wrap;" id="roster-visual"></div>
             </div>
 
-            <!-- Company Panel -->
-            <div id="panel-company" class="mode-panel">
-                <div style="border: 1px solid #e74c3c; color: #e74c3c; padding: 5px; display:inline-block; font-size:0.8em; font-weight:bold;">CONFIDENTIAL</div>
-                <h3><i class="fas fa-building"></i> Corporate Secure Transfer</h3>
-                <label><input type="checkbox" checked disabled> Force AES-256 Encryption</label><br>
-                <label><input type="checkbox" checked> Log Access to Audit Trail</label>
-                <p style="font-size:0.8em; color: #aaa;">Session ID: <span id="audit-id">---</span></p>
+            <!-- FEATURE: COMPANY TOOLBAR -->
+            <div id="ui-company" class="feature-bar">
+                <div class="badge">CONFIDENTIAL</div>
+                <h3><i class="fas fa-lock"></i> Corporate Security</h3>
+                <p>File will be renamed with <code>[CONFIDENTIAL]</code> prefix.</p>
+                <label>Set Access Password (Optional):</label>
+                <input type="password" id="company-password" placeholder="Enter password to lock link...">
             </div>
 
-            <!-- Anime Panel -->
-            <div id="panel-anime" class="mode-panel">
-                <h3><i class="fas fa-play-circle"></i> Batch Media Uploader</h3>
-                <div style="display:flex; gap:15px;">
-                    <label><input type="checkbox" checked> Skip Intros</label>
-                    <label><input type="checkbox" checked> Generate Thumbnails</label>
+            <!-- FEATURE: ANIME TOOLBAR -->
+            <div id="ui-anime" class="feature-bar">
+                <h3><i class="fas fa-tv"></i> Episode Renamer</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="season-num" placeholder="Season" value="1" style="width: 60px;">
+                    <input type="number" id="ep-num" placeholder="Episode" value="1" style="width: 60px;">
                 </div>
+                <small>File will auto-rename to <code>S01E01 - [Filename]</code></small>
             </div>
 
-            <!-- Developer Panel -->
-            <div id="panel-developer" class="mode-panel">
-                <h3><i class="fas fa-code"></i> Developer Console</h3>
-                <div id="debug-console">Console initialized...</div>
+            <!-- DROP ZONE -->
+            <div id="drop-zone">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: var(--accent); margin-bottom: 15px;"></i>
+                <p id="drop-text">Drag & Drop file here</p>
+                <input type="file" id="file-input" style="display:none;">
             </div>
 
-            <!-- UPLOADER -->
-            <div id="uploader-section">
-                <div id="drop-zone">
-                    <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; margin-bottom: 15px; color: var(--accent-color);"></i>
-                    <p id="upload-text">Drag & Drop file to begin</p>
-                    <input type="file" id="file-input" style="display: none;">
-                    <div id="file-display" class="file-display"></div>
-                </div>
-                
-                <div style="text-align: center;">
-                    <div id="scan-status" style="margin: 10px 0; font-weight: bold;"></div>
-                    <button id="action-button" disabled>Generate Link</button>
-                    <div class="loader" id="loader"></div>
-                </div>
+            <div class="file-info" id="file-info"></div>
+            <div class="rename-preview" id="rename-preview"></div>
+            <div class="error-msg" id="error-msg"></div>
+
+            <button id="action-btn" class="btn-primary" disabled>Start Upload</button>
+
+            <!-- DEV CONSOLE -->
+            <div id="dev-console">
+                <div>> System Ready.</div>
             </div>
 
-            <!-- RESULT / SEEDING -->
+            <!-- RESULT AREA -->
             <div id="result-area">
-                <h3><i class="fas fa-check-circle"></i> File is Seeding</h3>
-                <p>Share this link to allow peers to download.</p>
-                <input type="text" class="copy-input" id="magnet-link" readonly>
-                <button id="copy-btn"><i class="fas fa-copy"></i> Copy Link</button>
-                <br>
-                <div id="qrcode"></div>
-                <p style="font-size: 0.9em; margin-top: 10px;">Keep this tab open to maintain the P2P connection.</p>
-                <button onclick="location.reload()" style="background: #777; font-size: 0.8em; padding: 8px 15px;">Upload Another</button>
+                <h3><i class="fas fa-check-circle"></i> Seeding Active</h3>
+                <div id="link-container">
+                    <label>Secure Link:</label>
+                    <input type="text" id="share-link" readonly>
+                    <button onclick="copyLink()" style="margin-top: 10px; padding: 5px 10px; cursor: pointer;">Copy</button>
+                </div>
+                <div id="qrcode" style="margin-top: 20px; display: flex; justify-content: center;"></div>
+                
+                <!-- Dev Stats -->
+                <div id="webrtc-stats" style="margin-top: 15px; font-size: 0.8em; color: #888; display:none;">
+                    Speed: <span id="speed-stat">0</span> | Peers: <span id="peer-stat">0</span>
+                </div>
             </div>
-
         </div>
     </div>
 
-    <!-- AUDIO ASSETS -->
-    <audio id="sfx-click" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2d82914c68.mp3"></audio>
-    <audio id="sfx-complete" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c153e2.mp3"></audio>
+    <!-- AUDIO FOR HACKER MODE -->
+    <audio id="sfx-key" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_ff15c0e181.mp3"></audio>
 
-    <!-- INLINE WORKER FOR ENCRYPTION -->
-    <script id="encryption-worker" type="javascript/worker">
+    <!-- WORKER -->
+    <script id="worker-code" type="javascript/worker">
         self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
         self.onmessage = function(e) {
-            const { action, fileData } = e.data;
-            if (action === 'encrypt') {
-                try {
-                    // Generate random key and IV
-                    const key = CryptoJS.lib.WordArray.random(32); // 256-bit
-                    const iv = CryptoJS.lib.WordArray.random(16); // 128-bit
-                    
-                    // Convert ArrayBuffer to WordArray
-                    const wordArray = CryptoJS.lib.WordArray.create(fileData);
-                    
-                    // Encrypt
-                    const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
-                    
-                    // We return the Key (Hex), IV (Hex), and the Encrypted Content (Base64 string for simplicity in this demo)
-                    self.postMessage({
-                        status: 'complete',
-                        key: key.toString(CryptoJS.enc.Hex),
-                        iv: iv.toString(CryptoJS.enc.Hex),
-                        encryptedData: encrypted.toString() // In a real app, use Uint8Array for binary efficiency
-                    });
-                } catch (err) {
-                    self.postMessage({ status: 'error', message: err.message });
-                }
+            if(e.data.action === 'encrypt') {
+                const key = CryptoJS.lib.WordArray.random(32);
+                const iv = CryptoJS.lib.WordArray.random(16);
+                const wordArray = CryptoJS.lib.WordArray.create(e.data.fileData);
+                const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
+                self.postMessage({ status: 'done', key: key.toString(), encrypted: encrypted.toString() });
             }
-        };
+        }
     </script>
 
     <script>
-        // --- 1. CONFIGURATION & STATE ---
+        // --- 1. SYSTEM CONFIGURATION ---
         const client = new WebTorrent();
         let currentMode = 'default';
-        let selectedFile = null;
-        
-        // Mode Configurations
-        const MODES = {
-            'default': { title: "Secure File Share", badge: "Standard", theme: "", btn: "Create Link", panels: [] },
-            
-            // Category 1
-            'teacher': { 
-                title: "Classroom Manager", 
-                badge: "Teacher Mode", 
-                theme: "mode-teacher", 
-                btn: "Broadcast to Class", 
-                panels: ['panel-teacher'],
-                blockExe: true
-            },
-            'student': { 
-                title: "Assignment Portal", 
-                badge: "Student Mode", 
-                theme: "mode-teacher", 
-                btn: "Submit Assignment", 
-                panels: [],
-                autoRename: true
-            },
-            
-            // Category 2
-            'company': { 
-                title: "Enterprise Transfer", 
-                badge: "Company Mode", 
-                theme: "mode-company", 
-                btn: "Encrypt & Log", 
-                panels: ['panel-company'],
-                audit: true
-            },
-            'hacker': { 
-                title: "UPLINK_TERMINAL_V9", 
-                badge: "ROOT ACCESS", 
-                theme: "mode-hacker", 
-                btn: "EXECUTE_SEED()", 
-                panels: [],
-                matrix: true,
-                sfx: true
-            },
+        let originalFile = null;
+        let finalFileToSeed = null; // This holds the renamed/modified file
 
-            // Category 3
-            'anime': { 
-                title: "Media Batcher", 
-                badge: "Anime Mode", 
-                theme: "mode-anime", 
-                btn: "Start Stream Host", 
-                panels: ['panel-anime']
-            },
-
-            // Category 4
-            'developer': { 
-                title: "WebTorrent Debugger", 
-                badge: "Dev Mode", 
-                theme: "mode-developer", 
-                btn: "Init Swarm", 
-                panels: ['panel-developer'],
-                debug: true
-            }
-        };
-
-        // DOM Elements
-        const dom = {
+        const DOM = {
             body: document.body,
-            modeSelect: document.getElementById('mode-select'),
-            appTitle: document.getElementById('app-title'),
-            badge: document.getElementById('mode-badge'),
+            selector: document.getElementById('mode-selector'),
             dropZone: document.getElementById('drop-zone'),
             fileInput: document.getElementById('file-input'),
-            fileDisplay: document.getElementById('file-display'),
-            actionBtn: document.getElementById('action-button'),
-            loader: document.getElementById('loader'),
-            scanStatus: document.getElementById('scan-status'),
+            fileInfo: document.getElementById('file-info'),
+            renamePreview: document.getElementById('rename-preview'),
+            errorMsg: document.getElementById('error-msg'),
+            actionBtn: document.getElementById('action-btn'),
             resultArea: document.getElementById('result-area'),
-            uploaderSection: document.getElementById('uploader-section'),
-            magnetLink: document.getElementById('magnet-link'),
-            qrcode: document.getElementById('qrcode'),
-            debugConsole: document.getElementById('debug-console'),
-            sfxClick: document.getElementById('sfx-click'),
-            sfxComplete: document.getElementById('sfx-complete')
+            shareLink: document.getElementById('share-link'),
+            qr: document.getElementById('qrcode'),
+            console: document.getElementById('dev-console'),
+            passwordInput: document.getElementById('company-password')
         };
 
-        // --- 2. INITIALIZATION ---
-        dom.modeSelect.addEventListener('change', (e) => switchMode(e.target.value));
-        dom.dropZone.addEventListener('click', () => dom.fileInput.click());
-        dom.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dom.dropZone.classList.add('dragover'); });
-        dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover'));
-        dom.dropZone.addEventListener('drop', handleDrop);
-        dom.fileInput.addEventListener('change', (e) => processFileSelection(e.target.files[0]));
-        dom.actionBtn.addEventListener('click', startSeedingProcess);
-        document.getElementById('copy-btn').addEventListener('click', copyLink);
+        // --- 2. LOGIC HANDLERS ---
+        DOM.selector.addEventListener('change', (e) => setMode(e.target.value));
+        DOM.dropZone.addEventListener('click', () => DOM.fileInput.click());
+        DOM.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); DOM.dropZone.classList.add('dragover'); });
+        DOM.dropZone.addEventListener('dragleave', () => DOM.dropZone.classList.remove('dragover'));
+        DOM.dropZone.addEventListener('drop', handleDrop);
+        DOM.fileInput.addEventListener('change', (e) => processFile(e.target.files[0]));
+        DOM.actionBtn.addEventListener('click', startProcess);
 
         // --- 3. MODE SWITCHING LOGIC ---
-        function switchMode(modeKey) {
-            currentMode = modeKey;
-            const conf = MODES[modeKey];
+        function setMode(mode) {
+            currentMode = mode;
+            DOM.body.className = `mode-${mode}`; // Apply Theme
+            
+            // Hide all toolbars
+            document.querySelectorAll('.feature-bar').forEach(el => el.style.display = 'none');
+            DOM.console.style.display = 'none';
+            DOM.errorMsg.style.display = 'none';
+            document.getElementById('matrix-canvas').style.display = 'none';
 
-            // 1. Reset Body Class
-            dom.body.className = conf.theme;
+            // Show specific toolbars & Apply specific logic
+            if(mode === 'teacher') {
+                document.getElementById('ui-teacher').style.display = 'block';
+                renderTeacherRoster();
+            }
+            else if(mode === 'company') {
+                document.getElementById('ui-company').style.display = 'block';
+            }
+            else if(mode === 'anime') {
+                document.getElementById('ui-anime').style.display = 'block';
+            }
+            else if(mode === 'developer') {
+                DOM.console.style.display = 'block';
+            }
+            else if(mode === 'hacker') {
+                document.getElementById('matrix-canvas').style.display = 'block';
+                startMatrix();
+            }
 
-            // 2. Text Updates
-            dom.appTitle.textContent = conf.title;
-            dom.badge.textContent = conf.badge;
-            dom.actionBtn.textContent = conf.btn;
-
-            // 3. Toggle Panels
-            document.querySelectorAll('.mode-panel').forEach(p => p.style.display = 'none');
-            conf.panels.forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.style.display = 'block';
-            });
-
-            // 4. Mode Specific Init
-            if(modeKey === 'teacher') initTeacherRoster();
-            if(modeKey === 'company') document.getElementById('audit-id').innerText = generateID();
-            if(modeKey === 'hacker') toggleMatrix(true); else toggleMatrix(false);
-
-            log(`System switched to ${modeKey.toUpperCase()} mode.`);
-            playSound('click');
+            // Re-process file if one is selected (to apply new renaming logic)
+            if(originalFile) processFile(originalFile);
+            
+            log(`System switched to: ${mode.toUpperCase()} Mode`);
         }
 
-        // --- 4. FILE HANDLING ---
+        // --- 4. FILE PROCESSING PIPELINE ---
         function handleDrop(e) {
             e.preventDefault();
-            dom.dropZone.classList.remove('dragover');
-            if(e.dataTransfer.files.length) processFileSelection(e.dataTransfer.files[0]);
+            DOM.dropZone.classList.remove('dragover');
+            if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
         }
 
-        function processFileSelection(file) {
-            if(!file) return;
-            selectedFile = file;
-            playSound('click');
+        function processFile(file) {
+            originalFile = file;
+            DOM.errorMsg.style.display = 'none';
+            DOM.actionBtn.disabled = true;
+            DOM.renamePreview.innerText = '';
             
-            const conf = MODES[currentMode];
-
-            // Restriction Checks
-            if(conf.blockExe && (file.name.endsWith('.exe') || file.name.endsWith('.bat'))) {
-                dom.scanStatus.innerHTML = "<span style='color:red'>Security Alert: Executables blocked in Teacher Mode.</span>";
-                dom.actionBtn.disabled = true;
-                dom.fileDisplay.textContent = "";
-                return;
+            // --- VALIDATOR LOGIC (Feature: Teacher Mode Blocking) ---
+            if(currentMode === 'teacher') {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if(['exe', 'bat', 'msi', 'sh', 'bin'].includes(ext)) {
+                    showError("SECURITY ALERT: Executable files are blocked in Teacher Mode.");
+                    return;
+                }
+                if(file.size > 100 * 1024 * 1024) {
+                    showError("LIMIT ALERT: Files > 100MB are blocked in Teacher Mode.");
+                    return;
+                }
             }
 
-            // Auto Rename (Student Mode)
-            let displayName = file.name;
-            if(conf.autoRename) {
-                displayName = `[Student_ID]_${file.name}`;
-                log(`File auto-renamed to: ${displayName}`);
+            // --- TRANSFORMER LOGIC (Feature: Renaming) ---
+            let newName = file.name;
+
+            if(currentMode === 'student') {
+                // FEATURE: Auto-rename with Student ID
+                const studentId = Math.floor(Math.random() * 90000) + 10000;
+                newName = `ID${studentId}_${new Date().toISOString().split('T')[0]}_${file.name}`;
+            }
+            else if(currentMode === 'company') {
+                // FEATURE: Confidential Prefix
+                newName = `[CONFIDENTIAL]_${file.name}`;
+            }
+            else if(currentMode === 'anime') {
+                // FEATURE: S01E01 Format
+                const s = document.getElementById('season-num').value.padStart(2,'0');
+                const e = document.getElementById('ep-num').value.padStart(2,'0');
+                newName = `S${s}E${e} - ${file.name}`;
             }
 
-            dom.fileDisplay.textContent = `${displayName} (${formatBytes(file.size)})`;
-            dom.scanStatus.innerHTML = "<span style='color:var(--accent-color)'>File ready for encryption.</span>";
-            dom.actionBtn.disabled = false;
+            // Create new File object with modified name
+            finalFileToSeed = new File([file.slice(0, file.size, file.type)], newName, {type: file.type});
+
+            // UI Update
+            DOM.fileInfo.innerText = `${file.name} (${formatBytes(file.size)})`;
+            if(newName !== file.name) {
+                DOM.renamePreview.innerText = `Renaming to: ${newName}`;
+            }
+            DOM.actionBtn.disabled = false;
+            DOM.actionBtn.innerText = currentMode === 'student' ? 'Submit Assignment' : 'Start Upload';
+            
+            if(currentMode === 'hacker') playSound();
         }
 
-        // --- 5. ENCRYPTION & SEEDING PROCESS ---
-        async function startSeedingProcess() {
-            if(!selectedFile) return;
-            playSound('click');
+        // --- 5. ENCRYPTION & SEEDING ---
+        function startProcess() {
+            DOM.actionBtn.disabled = true;
+            DOM.actionBtn.innerText = "Encrypting...";
             
-            // UI State
-            dom.actionBtn.disabled = true;
-            dom.actionBtn.textContent = "Processing...";
-            dom.loader.style.display = 'block';
-
-            log("Reading file...");
-
-            // Read File
             const reader = new FileReader();
             reader.onload = function(e) {
-                const fileData = e.target.result;
-                log("File loaded into memory. Starting Worker...");
-                
-                // Initialize Worker
-                const blob = new Blob([document.getElementById('encryption-worker').textContent], {type: "text/javascript"});
+                // Encryption Worker (Standard for all modes)
+                const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
                 const worker = new Worker(URL.createObjectURL(blob));
-
-                worker.postMessage({ action: 'encrypt', fileData: fileData });
-
+                
+                worker.postMessage({ action: 'encrypt', fileData: e.target.result });
                 worker.onmessage = function(ev) {
-                    if(ev.data.status === 'complete') {
-                        const { key, iv, encryptedData } = ev.data;
-                        log(`Encryption Complete. Key: ${key.substring(0,8)}...`);
-                        
-                        // Create a file object from encrypted data to seed
-                        const encryptedFile = new File([encryptedData], "secure.dat", {type: "text/plain"});
-                        
-                        seedToWebTorrent(encryptedFile, key, selectedFile.name);
-                        worker.terminate();
-                    }
+                    log("Encryption Complete. Hashing...");
+                    seedFile(finalFileToSeed, ev.data.key); // Seed the RENAMED file
+                    worker.terminate();
                 };
             };
-            reader.readAsArrayBuffer(selectedFile);
+            reader.readAsArrayBuffer(finalFileToSeed);
         }
 
-        function seedToWebTorrent(fileToSeed, key, originalName) {
-            log("Initializing WebTorrent Client...");
+        function seedFile(file, key) {
+            DOM.actionBtn.innerText = "Seeding...";
             
-            client.seed(fileToSeed, (torrent) => {
-                log(`Seeding Active. Peers: ${torrent.numPeers}`);
-                playSound('complete');
+            client.seed(file, (torrent) => {
+                log(`Torrent created. InfoHash: ${torrent.infoHash}`);
+                
+                // --- LINK GENERATION LOGIC ---
+                let url = `${window.location.origin}${window.location.pathname}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${key}`;
+                
+                // FEATURE: Company Password
+                if(currentMode === 'company') {
+                    const pass = DOM.passwordInput.value;
+                    if(pass) {
+                        // In a real app, hash this. Here we simulate passing params.
+                        url += `&protected=true&hint=${btoa(pass.substring(0,2))}`; 
+                    }
+                }
 
-                // Construct Stream URL (Assuming stream.html exists, or using current URL logic)
-                // We embed the Key and Filename into the URL anchor or query params
-                const safeName = encodeURIComponent(originalName);
-                const magnet = encodeURIComponent(torrent.magnetURI);
-                
-                // Construct the link
-                const shareLink = `${window.location.origin}${window.location.pathname.replace('index.html','')}stream.html?magnet=${magnet}&key=${key}&filename=${safeName}`;
-
-                // UI Updates
-                dom.loader.style.display = 'none';
-                dom.uploaderSection.style.display = 'none';
-                dom.resultArea.style.display = 'block';
-                
-                dom.magnetLink.value = shareLink;
-                
-                // QR Code
-                dom.qrcode.innerHTML = "";
-                new QRCode(dom.qrcode, { text: shareLink, width: 128, height: 128 });
+                showResult(url, torrent);
             });
         }
 
-        // --- 6. UTILITIES ---
-        
-        function formatBytes(bytes, d=2){
-            if(!+bytes)return'0 Bytes';
-            const k=1024,i=Math.floor(Math.log(bytes)/Math.log(k));
-            return`${parseFloat((bytes/Math.pow(k,i)).toFixed(d))} ${['Bytes','KB','MB','GB','TB'][i]}`;
-        }
+        function showResult(url, torrent) {
+            DOM.resultArea.style.display = 'block';
+            DOM.shareLink.value = url;
+            DOM.actionBtn.innerText = "Done";
+            
+            DOM.qr.innerHTML = "";
+            new QRCode(DOM.qr, { text: url, width: 128, height: 128 });
 
-        function generateID() { return 'SES-' + Math.random().toString(36).substr(2, 9).toUpperCase(); }
-
-        function copyLink() {
-            dom.magnetLink.select();
-            document.execCommand('copy');
-            alert("Link copied to clipboard!");
-        }
-
-        function initTeacherRoster() {
-            const grid = document.getElementById('roster-display');
-            grid.innerHTML = '';
-            let count = Math.floor(Math.random() * 10) + 15;
-            document.getElementById('student-count').innerText = count;
-            for(let i=0; i<count; i++) {
-                const d = document.createElement('div');
-                d.className = 'student-dot ' + (Math.random() > 0.3 ? 'online' : '');
-                d.innerText = i+1;
-                grid.appendChild(d);
+            // FEATURE: Developer Mode Stats
+            if(currentMode === 'developer') {
+                document.getElementById('webrtc-stats').style.display = 'block';
+                setInterval(() => {
+                    document.getElementById('speed-stat').innerText = formatBytes(torrent.uploadSpeed) + '/s';
+                    document.getElementById('peer-stat').innerText = torrent.numPeers;
+                }, 1000);
             }
+        }
+
+        // --- UTILS ---
+        function showError(msg) {
+            DOM.errorMsg.style.display = 'block';
+            DOM.errorMsg.innerText = msg;
+            DOM.actionBtn.disabled = true;
         }
 
         function log(msg) {
             console.log(msg);
-            if(MODES[currentMode].debug) {
-                const line = document.createElement('div');
-                line.textContent = `> ${msg}`;
-                dom.debugConsole.appendChild(line);
-                dom.debugConsole.scrollTop = dom.debugConsole.scrollHeight;
+            const l = document.createElement('div');
+            l.innerText = `> ${msg}`;
+            DOM.console.appendChild(l);
+            DOM.console.scrollTop = DOM.console.scrollHeight;
+        }
+
+        function formatBytes(a,b=2){if(!+a)return"0 Bytes";const c=0>b?0:b,d=Math.floor(Math.log(a)/Math.log(1024));return`${parseFloat((a/Math.pow(1024,d)).toFixed(c))} ${["Bytes","KB","MB","GB","TB"][d]}`}
+        
+        function copyLink() { DOM.shareLink.select(); document.execCommand('copy'); alert('Copied!'); }
+
+        function playSound() { document.getElementById('sfx-key').play().catch(()=>{}); }
+
+        // --- VISUAL EXTRAS ---
+        function renderTeacherRoster() {
+            const el = document.getElementById('roster-visual');
+            el.innerHTML = '';
+            for(let i=0; i<15; i++) {
+                const d = document.createElement('div');
+                d.style.cssText = `width:20px; height:20px; background:${Math.random()>0.5?'#2ecc71':'#ccc'}; border-radius:50%;`;
+                el.appendChild(d);
             }
         }
 
-        function playSound(type) {
-            if(MODES[currentMode].sfx || type === 'complete') {
-                const audio = type === 'click' ? dom.sfxClick : dom.sfxComplete;
-                audio.currentTime = 0;
-                audio.play().catch(()=>{});
-            }
-        }
-
-        // --- 7. MATRIX RAIN EFFECT ---
-        let matrixInt;
-        function toggleMatrix(enable) {
-            const cvs = document.getElementById('matrix-canvas');
-            const ctx = cvs.getContext('2d');
-            if(matrixInt) clearInterval(matrixInt);
-            
-            if(!enable) {
-                ctx.clearRect(0,0,cvs.width,cvs.height);
-                return;
-            }
-
-            cvs.width = window.innerWidth;
-            cvs.height = window.innerHeight;
-            const cols = Math.floor(cvs.width / 20);
+        function startMatrix() {
+            const c = document.getElementById('matrix-canvas');
+            const ctx = c.getContext('2d');
+            c.width = window.innerWidth; c.height = window.innerHeight;
+            const cols = Math.floor(c.width/20);
             const ypos = Array(cols).fill(0);
-
-            matrixInt = setInterval(() => {
-                ctx.fillStyle = '#0001';
-                ctx.fillRect(0, 0, cvs.width, cvs.height);
-                ctx.fillStyle = '#0f0';
-                ctx.font = '15pt monospace';
-                
-                ypos.forEach((y, ind) => {
-                    const text = String.fromCharCode(Math.random() * 128);
-                    const x = ind * 20;
-                    ctx.fillText(text, x, y);
-                    if (y > 100 + Math.random() * 10000) ypos[ind] = 0;
-                    else ypos[ind] = y + 20;
+            setInterval(() => {
+                ctx.fillStyle = '#0001'; ctx.fillRect(0,0,c.width,c.height);
+                ctx.fillStyle = '#0f0'; ctx.font = '15pt monospace';
+                ypos.forEach((y,i) => {
+                    ctx.fillText(String.fromCharCode(Math.random()*128), i*20, y);
+                    ypos[i] = y > 100 + Math.random()*10000 ? 0 : y+20;
                 });
             }, 50);
         }
