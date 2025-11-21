@@ -1,77 +1,28 @@
---- START OF FILE index.html ---
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <link rel="icon" type="image/png" href="ok.png?v=3">
-    <link rel="shortcut icon" type="image/png" href="ok.png?v=3">
-    <link rel="apple-touch-icon" href="ok.png?v=3">
-    <title>P2P Secure WebTorrent File Sharer</title>
+    <title>P2P Secure Multi-Mode Sharer</title>
     
-    <!-- CDNs -->
+    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* --- CORE STYLES & THEMES --- */
+        /* --- 1. CORE VARIABLES & DEFAULTS --- */
         :root {
-            --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
-            --font-hacker: 'Courier New', Courier, monospace;
-        }
-
-        /* Light Theme (Default) */
-        :root, :root.light-mode {
+            --font-main: 'Segoe UI', 'Roboto', sans-serif;
             --bg-color: #f0f2f5;
             --text-color: #333;
-            --header-color: #4a4a4a;
-            --card-bg: rgba(255, 255, 255, 0.6);
-            --card-border: rgba(255, 255, 255, 0.8);
-            --neon-border-color: #007bff;
+            --card-bg: rgba(255, 255, 255, 0.9);
             --accent-color: #007bff;
-            --accent-hover: #0056b3;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --input-bg: rgba(255, 255, 255, 0.7);
-            --input-border: #ccc;
-        }
-
-        /* Dark Theme */
-        :root.dark-mode {
-            --bg-color: #1a1a1a;
-            --text-color: #e0e0e0;
-            --header-color: #f5f5f5;
-            --card-bg: rgba(10, 10, 10, 0.5);
-            --card-border: rgba(255, 255, 255, 0.1);
-            --neon-border-color: #00e5ff;
-            --accent-color: #00e5ff;
-            --accent-hover: #00b8d4;
-            --success-color: #00e676;
-            --danger-color: #ff5252;
-            --warning-color: #ffd740;
-            --input-bg: rgba(40, 40, 40, 0.7);
-            --input-border: #444;
-        }
-        
-        /* Hacker Theme */
-        :root.hacker-mode {
-            --bg-color: #000;
-            --text-color: #0f0;
-            --header-color: #0f0;
-            --card-bg: rgba(0, 20, 0, 0.6);
-            --card-border: rgba(0, 255, 0, 0.3);
-            --neon-border-color: #0f0;
-            --accent-color: #0f0;
-            --accent-hover: #3f3;
-            --success-color: #0f0;
-            --danger-color: #f00;
-            --warning-color: #ff0;
-            --input-bg: rgba(0, 15, 0, 0.8);
-            --input-border: #0f0;
+            --border-radius: 12px;
+            --border-color: rgba(0,0,0,0.1);
+            --shadow: 0 8px 32px rgba(0,0,0,0.1);
+            --transition: all 0.4s ease;
         }
 
         body {
@@ -80,525 +31,617 @@
             color: var(--text-color);
             margin: 0;
             padding: 20px;
-            transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
+            transition: var(--transition);
             overflow-x: hidden;
         }
 
-        body.hacker-mode {
-            font-family: var(--font-hacker);
+        /* --- 2. THEME MODES (CSS Variables) --- */
+
+        /* Category 1: TEACHER MODE */
+        body.mode-teacher {
+            --bg-color: #e3f2fd;
+            --text-color: #1565c0;
+            --card-bg: #ffffff;
+            --accent-color: #1976d2;
+            --font-main: 'Verdana', sans-serif;
+            --border-radius: 6px;
         }
 
-        #matrix-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            display: none;
+        /* Category 2: COMPANY MODE */
+        body.mode-company {
+            --bg-color: #2c3e50;
+            --text-color: #ecf0f1;
+            --card-bg: #34495e;
+            --accent-color: #e67e22;
+            --font-main: 'Arial', sans-serif;
+            --border-radius: 2px;
+            --border-color: #5d6d7e;
         }
 
-        body.hacker-mode #matrix-canvas {
-            display: block;
+        /* Category 2: HACKER MODE */
+        body.mode-hacker {
+            --bg-color: #000;
+            --text-color: #0f0;
+            --card-bg: rgba(0, 20, 0, 0.85);
+            --accent-color: #0f0;
+            --font-main: 'Courier New', monospace;
+            --border-radius: 0;
+            --border-color: #0f0;
+            --shadow: 0 0 15px #0f0;
         }
 
-        /* --- UI COMPONENTS --- */
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+        /* Category 3: ANIME MODE */
+        body.mode-anime {
+            --bg-color: #240046;
+            --text-color: #e0aaff;
+            --card-bg: rgba(60, 9, 108, 0.7);
+            --accent-color: #ff006e;
+            --font-main: 'Comic Sans MS', sans-serif; /* Stylistic choice */
+            --border-radius: 25px;
+            background-image: radial-gradient(circle, #3c096c 0%, #10002b 100%);
         }
+
+        /* Category 4: DEVELOPER MODE */
+        body.mode-developer {
+            --bg-color: #1e1e1e;
+            --text-color: #d4d4d4;
+            --card-bg: #252526;
+            --accent-color: #007acc;
+            --font-main: 'Consolas', monospace;
+            --border-radius: 0;
+            --border-color: #3e3e42;
+        }
+
+        /* --- 3. LAYOUT & COMPONENTS --- */
+        .container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
 
         .card {
             background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 15px;
-            padding: 25px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
             backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            transition: var(--transition);
         }
 
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; right: 0; bottom: 0; left: 0;
-            border-radius: 15px;
-            border: 2px solid transparent;
-            pointer-events: none;
-            animation: neon-glow 3s infinite alternate;
-            z-index: -1;
-        }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 2rem; }
         
-        @keyframes neon-glow {
-            from { border-color: transparent; }
-            to { border-color: var(--neon-border-color); box-shadow: 0 0 10px var(--neon-border-color), 0 0 20px var(--neon-border-color); }
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .animated-header {
-            font-size: 2.5em;
+        .mode-badge {
+            display: inline-block;
+            background: var(--accent-color);
+            color: var(--card-bg); /* Inverted for contrast */
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
             font-weight: bold;
-            color: var(--header-color);
-            animation: color-cycle 10s infinite;
+            text-transform: uppercase;
+            margin-top: 5px;
         }
 
-        @keyframes color-cycle {
-            0%   { color: var(--header-color); }
-            50%  { color: var(--accent-color); }
-            100% { color: var(--header-color); }
-        }
-
-        .controls {
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-        }
-        .toggle-switch input { display: none; }
-        .slider {
-            position: relative;
-            width: 40px;
-            height: 20px;
-            background-color: #ccc;
-            border-radius: 20px;
-            transition: 0.3s;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 14px;
-            width: 14px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            border-radius: 50%;
-            transition: 0.3s;
-        }
-        input:checked + .slider { background-color: var(--accent-color); }
-        input:checked + .slider:before { transform: translateX(20px); }
-
-        /* --- Uploader Section --- */
-        #uploader { text-align: center; }
-        #drop-zone {
-            border: 2px dashed var(--input-border);
-            border-radius: 10px;
-            padding: 40px 20px;
-            cursor: pointer;
-            transition: border-color 0.3s, background-color 0.3s;
-        }
-        #drop-zone.dragover {
-            border-color: var(--accent-color);
-            background-color: rgba(0, 123, 255, 0.1);
-        }
-        #file-input { display: none; }
-        #re-seed-file-input { display: none; }
-
-        .advanced-scanner {
-            margin-top: 15px;
+        /* Mode Selector */
+        .mode-control-panel {
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 10px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
         }
-        
-        #status, #scan-status {
-            margin-top: 15px;
-            font-weight: bold;
-            min-height: 24px;
+        select {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-family: inherit;
+            cursor: pointer;
         }
-        #scan-status.danger { color: var(--danger-color); }
-        #scan-status.warning { color: var(--warning-color); }
-        #scan-status.success { color: var(--success-color); }
 
+        /* Upload Area */
+        #drop-zone {
+            border: 3px dashed var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        #drop-zone:hover { border-color: var(--accent-color); background: rgba(0,0,0,0.05); }
+        #drop-zone.dragover { border-color: var(--accent-color); background: rgba(0,0,0,0.1); }
+        
+        .file-display { font-weight: bold; margin-top: 15px; word-break: break-all; }
+
+        /* Buttons */
         button {
             background-color: var(--accent-color);
-            color: white;
+            color: #fff;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
+            padding: 12px 30px;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
             font-weight: bold;
-            transition: background-color 0.3s;
-        }
-        button:hover { background-color: var(--accent-hover); }
-        button:disabled { background-color: #6c757d; cursor: not-allowed; }
-        .btn-danger { background-color: var(--danger-color); }
-        .btn-warning { background-color: var(--warning-color); }
-
-
-        /* --- Seeding Result Section --- */
-        #seeding-info { display: none; }
-        .result-box {
-            display: flex;
-            align-items: center;
-            margin-top: 15px;
-            background-color: var(--input-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 5px;
-            padding: 10px;
-        }
-        .result-box input {
-            flex-grow: 1;
-            border: none;
-            background: transparent;
-            color: var(--text-color);
             font-family: inherit;
-        }
-        .result-box button { border-radius: 0 5px 5px 0; margin-left: -5px; }
-        
-        #qrcode {
-            margin: 20px auto;
-            padding: 10px;
-            background: white;
-            border-radius: 5px;
-            width: 138px;
-            height: 138px;
-        }
-
-        /* --- History Section --- */
-        #history table {
-            width: 100%;
-            border-collapse: collapse;
+            cursor: pointer;
+            transition: 0.2s;
             margin-top: 10px;
         }
-        #history th, #history td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--card-border);
-        }
-        .history-actions button {
-            padding: 5px 10px;
-            margin-right: 5px;
-            font-size: 0.9em;
-        }
-        .file-icon { font-size: 1.5em; }
+        button:hover { filter: brightness(1.15); transform: translateY(-2px); }
+        button:disabled { background-color: #888; cursor: not-allowed; transform: none; }
 
-        /* --- Loader Animation --- */
-        .loader-container {
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .loader {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid var(--accent-color);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        /* --- 4. MODE SPECIFIC PANELS (Hidden by default) --- */
+        .mode-panel { display: none; margin-bottom: 20px; padding: 15px; border-radius: var(--border-radius); background: rgba(0,0,0,0.05); border: 1px solid var(--border-color); }
+        
+        /* Teacher Roster */
+        .roster-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .student-dot { width: 35px; height: 35px; background: #bbb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8em; color: white; }
+        .student-dot.online { background: #2ecc71; }
 
-        /* Responsive */
-        @media (max-width: 600px) {
-            body { padding: 10px; }
-            .result-box { flex-direction: column; gap: 10px; }
-            .result-box input { width: 100%; }
-            .result-box button { width: 100%; border-radius: 5px; margin-left: 0; }
-            .history-actions { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
-        }
+        /* Developer Console */
+        #debug-console { background: #111; color: #0f0; font-family: monospace; height: 120px; overflow-y: auto; padding: 10px; font-size: 0.8rem; border: 1px solid #333; }
+
+        /* Hacker Matrix */
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; display: none; }
+        body.mode-hacker #matrix-canvas { display: block; }
+
+        /* Result Area */
+        #result-area { display: none; margin-top: 20px; text-align: center; }
+        input.copy-input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid var(--border-color); background: rgba(255,255,255,0.1); color: var(--text-color); font-family: monospace; border-radius: 4px; }
+        #qrcode { margin: 15px auto; display: inline-block; padding: 10px; background: white; border-radius: 4px; }
+
+        /* Loading Spinner */
+        .loader { display: none; border: 4px solid rgba(0,0,0,0.1); border-top: 4px solid var(--accent-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
     </style>
 </head>
 <body>
 
+    <!-- Matrix Background (Hacker Mode) -->
     <canvas id="matrix-canvas"></canvas>
 
     <div class="container">
-      <header>
-    <img src="Generated Image November 20, 2025 - 4_32PM.png" alt="App Logo" style="width: 80px; height: 80px; margin-bottom: 10px; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-    <h1 class="animated-header">P2P Secure WebTorrent File Sharer</h1>
-    <p>GitHub Pages Edition</p>
-</header>
+        <!-- HEADER & SELECTOR -->
+        <header>
+            <h1 id="app-title">Secure File Share</h1>
+            <div id="mode-badge" class="mode-badge">Standard Mode</div>
+        </header>
 
-        <div class="controls">
-            <label class="toggle-switch">
-                <i class="fas fa-moon"></i>
-                <input type="checkbox" id="theme-toggle">
-                <span class="slider"></span>
-            </label>
-            <label class="toggle-switch">
-                <i class="fas fa-user-secret"></i>
-                <input type="checkbox" id="hacker-toggle">
-                <span class="slider"></span>
-            </label>
+        <div class="mode-control-panel">
+            <i class="fas fa-sliders-h"></i>
+            <label for="mode-select"><strong>System Mode:</strong></label>
+            <select id="mode-select">
+                <option value="default">Standard / Default</option>
+                <optgroup label="Category 1: Education">
+                    <option value="teacher">Teacher Mode (Classroom)</option>
+                    <option value="student">Student Mode (Submit)</option>
+                </optgroup>
+                <optgroup label="Category 2: Enterprise">
+                    <option value="company">Company Mode (Secure)</option>
+                    <option value="hacker">Hacker Mode (Terminal)</option>
+                </optgroup>
+                <optgroup label="Category 3: Media">
+                    <option value="anime">Anime Mode (Batch)</option>
+                </optgroup>
+                <optgroup label="Category 4: Utility">
+                    <option value="developer">Developer Mode (Debug)</option>
+                </optgroup>
+            </select>
         </div>
 
+        <!-- MAIN CARD -->
         <div class="card">
-            <h2>1. Select a File to Share</h2>
-            <div id="uploader">
-                <div id="drop-zone">
-                    <p>Drag & Drop a file here, or click to select</p>
-                    <p id="file-name"></p>
-                    <input type="file" id="file-input">
-                    <input type="file" id="re-seed-file-input">
-                </div>
-                <div class="advanced-scanner">
-                     <label class="toggle-switch">
-                        <span>Advanced File Scanner</span>
-                        <input type="checkbox" id="advanced-scanner-toggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div id="scan-status"></div>
-                <button id="share-button" disabled>Create Secure Link</button>
+            
+            <!-- DYNAMIC PANELS -->
+            
+            <!-- Teacher Panel -->
+            <div id="panel-teacher" class="mode-panel">
+                <h3><i class="fas fa-chalkboard-teacher"></i> Classroom Dashboard</h3>
+                <p>Broadcasting to <span id="student-count">0</span> local students.</p>
+                <div class="roster-grid" id="roster-display"></div>
             </div>
-            <div id="status"></div>
-            <div class="loader-container" id="loader">
-                <div class="loader"></div>
-                <p id="loader-text">Preparing P2P Swarm...</p>
-            </div>
-            <div id="seeding-info">
-                <h3><i class="fas fa-check-circle" style="color: var(--success-color);"></i> Link Ready!</h3>
-                <p><strong>File:</strong> <span id="result-filename"></span> (<span id="result-filesize"></span>)</p>
-                <p><strong>Status:</strong> <span id="seeding-status"></span></p>
-                <div class="result-box">
-                    <input type="text" id="magnet-link" readonly>
-                    <button id="copy-button"><i class="fas fa-copy"></i> Copy</button>
-                </div>
-                <div style="display: flex; justify-content: space-around; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 20px;">
-                    <div id="qrcode"></div>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button id="open-stream-button"><i class="fas fa-external-link-alt"></i> Open Stream Page</button>
-                        <button id="upload-more-button"><i class="fas fa-plus-circle"></i> Upload Another File</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="card" id="history">
-            <h2>Your Previous Uploads</h2>
-            <div id="history-container">
-                <p id="welcome-message">Welcome! Your secure uploads will appear here.</p>
-                <table id="history-table" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th><i class="fas fa-file-alt"></i></th>
-                            <th>File Name</th>
-                            <th>Size</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+            <!-- Company Panel -->
+            <div id="panel-company" class="mode-panel">
+                <div style="border: 1px solid #e74c3c; color: #e74c3c; padding: 5px; display:inline-block; font-size:0.8em; font-weight:bold;">CONFIDENTIAL</div>
+                <h3><i class="fas fa-building"></i> Corporate Secure Transfer</h3>
+                <label><input type="checkbox" checked disabled> Force AES-256 Encryption</label><br>
+                <label><input type="checkbox" checked> Log Access to Audit Trail</label>
+                <p style="font-size:0.8em; color: #aaa;">Session ID: <span id="audit-id">---</span></p>
             </div>
+
+            <!-- Anime Panel -->
+            <div id="panel-anime" class="mode-panel">
+                <h3><i class="fas fa-play-circle"></i> Batch Media Uploader</h3>
+                <div style="display:flex; gap:15px;">
+                    <label><input type="checkbox" checked> Skip Intros</label>
+                    <label><input type="checkbox" checked> Generate Thumbnails</label>
+                </div>
+            </div>
+
+            <!-- Developer Panel -->
+            <div id="panel-developer" class="mode-panel">
+                <h3><i class="fas fa-code"></i> Developer Console</h3>
+                <div id="debug-console">Console initialized...</div>
+            </div>
+
+            <!-- UPLOADER -->
+            <div id="uploader-section">
+                <div id="drop-zone">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; margin-bottom: 15px; color: var(--accent-color);"></i>
+                    <p id="upload-text">Drag & Drop file to begin</p>
+                    <input type="file" id="file-input" style="display: none;">
+                    <div id="file-display" class="file-display"></div>
+                </div>
+                
+                <div style="text-align: center;">
+                    <div id="scan-status" style="margin: 10px 0; font-weight: bold;"></div>
+                    <button id="action-button" disabled>Generate Link</button>
+                    <div class="loader" id="loader"></div>
+                </div>
+            </div>
+
+            <!-- RESULT / SEEDING -->
+            <div id="result-area">
+                <h3><i class="fas fa-check-circle"></i> File is Seeding</h3>
+                <p>Share this link to allow peers to download.</p>
+                <input type="text" class="copy-input" id="magnet-link" readonly>
+                <button id="copy-btn"><i class="fas fa-copy"></i> Copy Link</button>
+                <br>
+                <div id="qrcode"></div>
+                <p style="font-size: 0.9em; margin-top: 10px;">Keep this tab open to maintain the P2P connection.</p>
+                <button onclick="location.reload()" style="background: #777; font-size: 0.8em; padding: 8px 15px;">Upload Another</button>
+            </div>
+
         </div>
     </div>
 
-    <audio id="click-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2d82914c68.mp3" preload="auto"></audio>
-    
-    <!-- ADVANCED ENCRYPTION WORKER FOR TRUE STREAMING -->
+    <!-- AUDIO ASSETS -->
+    <audio id="sfx-click" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2d82914c68.mp3"></audio>
+    <audio id="sfx-complete" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c153e2.mp3"></audio>
+
+    <!-- INLINE WORKER FOR ENCRYPTION -->
     <script id="encryption-worker" type="javascript/worker">
         self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
-        let aesEncryptor = null;
-        function wordToUint8(wordArray) { const l = wordArray.sigBytes; const u8_array = new Uint8Array(l); for (let i = 0; i < l; i++) { u8_array[i] = (wordArray.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff; } return u8_array; }
-        self.onmessage = function(e) { const { action, payload } = e.data; try { switch (action) { case 'init': const key = payload.keyHex ? CryptoJS.enc.Hex.parse(payload.keyHex) : CryptoJS.lib.WordArray.random(32); const iv = CryptoJS.lib.WordArray.random(16); aesEncryptor = CryptoJS.algo.AES.createEncryptor(key, { iv: iv }); const iv_u8 = wordToUint8(iv); self.postMessage({ status: 'initialized', keyHex: key.toString(CryptoJS.enc.Hex), iv: iv_u8.buffer }, [iv_u8.buffer]); break; case 'chunk': const wordArrayChunk = CryptoJS.lib.WordArray.create(payload.chunk); const encryptedChunk = aesEncryptor.process(wordArrayChunk); if (encryptedChunk && encryptedChunk.sigBytes > 0) { const encrypted_u8 = wordToUint8(encryptedChunk); self.postMessage({ status: 'chunk_encrypted', chunk: encrypted_u8.buffer }, [encrypted_u8.buffer]); } else { self.postMessage({ status: 'chunk_encrypted', chunk: null }); } break; case 'finalize': const finalChunk = aesEncryptor.finalize(); if (finalChunk && finalChunk.sigBytes > 0) { const final_u8 = wordToUint8(finalChunk); self.postMessage({ status: 'chunk_encrypted', chunk: final_u8.buffer }, [final_u8.buffer]); } self.postMessage({ status: 'finished' }); break; } } catch (error) { self.postMessage({ status: 'error', error: error.message }); } };
+        self.onmessage = function(e) {
+            const { action, fileData } = e.data;
+            if (action === 'encrypt') {
+                try {
+                    // Generate random key and IV
+                    const key = CryptoJS.lib.WordArray.random(32); // 256-bit
+                    const iv = CryptoJS.lib.WordArray.random(16); // 128-bit
+                    
+                    // Convert ArrayBuffer to WordArray
+                    const wordArray = CryptoJS.lib.WordArray.create(fileData);
+                    
+                    // Encrypt
+                    const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv });
+                    
+                    // We return the Key (Hex), IV (Hex), and the Encrypted Content (Base64 string for simplicity in this demo)
+                    self.postMessage({
+                        status: 'complete',
+                        key: key.toString(CryptoJS.enc.Hex),
+                        iv: iv.toString(CryptoJS.enc.Hex),
+                        encryptedData: encrypted.toString() // In a real app, use Uint8Array for binary efficiency
+                    });
+                } catch (err) {
+                    self.postMessage({ status: 'error', message: err.message });
+                }
+            }
+        };
     </script>
 
-
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- App State & Config ---
-        const rtcConfig = { iceServers: [ { urls: "stun:stun.l.google.com:19302" }, { urls: "stun:global.stun.twilio.com:3478" }, { urls: "stun:stun.services.mozilla.com" } ], iceTransportPolicy: "all", bundlePolicy: "max-bundle" };
-        const clientOptions = { tracker: { rtcConfig: rtcConfig }, maxConns: 100 };
-        const app = { client: new WebTorrent(clientOptions), selectedFile: null, hackerMode: false, maliciousHashes: ['275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f'], allowedFormats: ['mp4', 'mkv', 'webm', 'mp3', 'flac', 'png', 'jpg', 'jpeg', 'pdf', 'txt', 'zip'], blockedFormats: ['exe', 'apk', 'bat', 'scr', 'com', 'jar', 'dmg', 'iso', 'msi'] };
-        const dom = { themeToggle: document.getElementById('theme-toggle'), hackerToggle: document.getElementById('hacker-toggle'), dropZone: document.getElementById('drop-zone'), fileInput: document.getElementById('file-input'), reSeedFileInput: document.getElementById('re-seed-file-input'), fileNameDisplay: document.getElementById('file-name'), shareButton: document.getElementById('share-button'), advancedScannerToggle: document.getElementById('advanced-scanner-toggle'), scanStatus: document.getElementById('scan-status'), status: document.getElementById('status'), uploader: document.getElementById('uploader'), loader: document.getElementById('loader'), loaderText: document.getElementById('loader-text'), seedingInfo: document.getElementById('seeding-info'), resultFilename: document.getElementById('result-filename'), resultFilesize: document.getElementById('result-filesize'), seedingStatus: document.getElementById('seeding-status'), magnetLink: document.getElementById('magnet-link'), copyButton: document.getElementById('copy-button'), openStreamButton: document.getElementById('open-stream-button'), uploadMoreButton: document.getElementById('upload-more-button'), qrcodeContainer: document.getElementById('qrcode'), historyContainer: document.getElementById('history-container'), welcomeMessage: document.getElementById('welcome-message'), historyTable: document.getElementById('history-table'), historyTableBody: document.querySelector('#history-table tbody'), matrixCanvas: document.getElementById('matrix-canvas'), clickSound: document.getElementById('click-sound') };
-        const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // --- 1. CONFIGURATION & STATE ---
+        const client = new WebTorrent();
+        let currentMode = 'default';
+        let selectedFile = null;
         
-        const ui = {
-            init() { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { document.body.classList.add('dark-mode'); dom.themeToggle.checked = true; } const savedHacker = localStorage.getItem('hackerMode'); if (savedHacker === 'true') { app.hackerMode = true; dom.hackerToggle.checked = true; this.toggleHackerMode(true, true); } dom.themeToggle.addEventListener('change', () => this.toggleTheme()); dom.hackerToggle.addEventListener('change', () => this.toggleHackerMode(dom.hackerToggle.checked)); dom.dropZone.addEventListener('click', () => dom.fileInput.click()); dom.dropZone.addEventListener('dragover', e => { e.preventDefault(); dom.dropZone.classList.add('dragover'); }); dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover')); dom.dropZone.addEventListener('drop', e => { e.preventDefault(); dom.dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) { dom.fileInput.files = e.dataTransfer.files; handleFileSelect({ target: dom.fileInput }); } }); },
-            toggleTheme() { this.playSound(dom.clickSound); document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); },
-            toggleHackerMode(enable, silent = false) { if (!silent) this.playSound(dom.clickSound); app.hackerMode = enable; document.body.classList.toggle('hacker-mode', enable); localStorage.setItem('hackerMode', enable); if (enable) matrix.start(); else matrix.stop(); },
-            showLoader(text) { if (dom.loaderText) dom.loaderText.textContent = text; if (dom.loader) dom.loader.style.display = 'flex'; if (dom.uploader) dom.uploader.style.display = 'none'; if (dom.seedingInfo) dom.seedingInfo.style.display = 'none'; },
-            hideLoader() { if (dom.loader) dom.loader.style.display = 'none'; },
-            showSeedingInfo(data) { if (dom.resultFilename) dom.resultFilename.textContent = data.filename; if (dom.resultFilesize) dom.resultFilesize.textContent = data.filesize; if (dom.magnetLink) dom.magnetLink.value = data.link; if (dom.openStreamButton) dom.openStreamButton.onclick = () => window.open(data.link, '_blank'); if (dom.qrcodeContainer) { dom.qrcodeContainer.innerHTML = ""; new QRCode(dom.qrcodeContainer, { text: data.link, width: 128, height: 128 }); } dom.seedingStatus.innerHTML = `Seeding to P2P network. <strong style="color: var(--warning-color);">Keep this page open to keep the file alive!</strong> <span style="color: var(--success-color);">Encrypted ✔</span>`; this.hideLoader(); if (dom.seedingInfo) dom.seedingInfo.style.display = 'block'; },
-            updateStatus(message, type = 'info') { if (!dom.status) return; dom.status.textContent = message; dom.status.style.color = type === 'error' ? 'var(--danger-color)' : 'var(--text-color)'; },
-            updateScanStatus(message, type = 'info') { if (!dom.scanStatus) return; dom.scanStatus.textContent = message; dom.scanStatus.className = type; },
-            playSound(sound) { if (app.hackerMode && sound) { sound.currentTime = 0; sound.play().catch(e => console.warn("Audio play failed.", e)); } }
+        // Mode Configurations
+        const MODES = {
+            'default': { title: "Secure File Share", badge: "Standard", theme: "", btn: "Create Link", panels: [] },
+            
+            // Category 1
+            'teacher': { 
+                title: "Classroom Manager", 
+                badge: "Teacher Mode", 
+                theme: "mode-teacher", 
+                btn: "Broadcast to Class", 
+                panels: ['panel-teacher'],
+                blockExe: true
+            },
+            'student': { 
+                title: "Assignment Portal", 
+                badge: "Student Mode", 
+                theme: "mode-teacher", 
+                btn: "Submit Assignment", 
+                panels: [],
+                autoRename: true
+            },
+            
+            // Category 2
+            'company': { 
+                title: "Enterprise Transfer", 
+                badge: "Company Mode", 
+                theme: "mode-company", 
+                btn: "Encrypt & Log", 
+                panels: ['panel-company'],
+                audit: true
+            },
+            'hacker': { 
+                title: "UPLINK_TERMINAL_V9", 
+                badge: "ROOT ACCESS", 
+                theme: "mode-hacker", 
+                btn: "EXECUTE_SEED()", 
+                panels: [],
+                matrix: true,
+                sfx: true
+            },
+
+            // Category 3
+            'anime': { 
+                title: "Media Batcher", 
+                badge: "Anime Mode", 
+                theme: "mode-anime", 
+                btn: "Start Stream Host", 
+                panels: ['panel-anime']
+            },
+
+            // Category 4
+            'developer': { 
+                title: "WebTorrent Debugger", 
+                badge: "Dev Mode", 
+                theme: "mode-developer", 
+                btn: "Init Swarm", 
+                panels: ['panel-developer'],
+                debug: true
+            }
         };
-        const matrix = { intervalId: null, start() { const canvas = dom.matrixCanvas; if (!canvas) return; const ctx = canvas.getContext('2d'); canvas.width = window.innerWidth; canvas.height = window.innerHeight; const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}'; const fontSize = 14; const columns = canvas.width / fontSize; const drops = Array(Math.floor(columns)).fill(1); function draw() { ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#0f0'; ctx.font = `${fontSize}px monospace`; for (let i = 0; i < drops.length; i++) { const text = letters[Math.floor(Math.random() * letters.length)]; ctx.fillText(text, i * fontSize, drops[i] * fontSize); if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0; drops[i]++; } } this.intervalId = setInterval(draw, 33); }, stop() { if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; const canvas = dom.matrixCanvas; if(canvas){const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);} } } };
-        
-        dom.fileInput.addEventListener('change', handleFileSelect);
-        dom.shareButton.addEventListener('click', () => startSeeding());
-        dom.copyButton.addEventListener('click', copyMagnetLink);
-        dom.uploadMoreButton.addEventListener('click', resetUploaderUI);
-        dom.reSeedFileInput.addEventListener('change', (event) => { const file = event.target.files[0]; const historyItem = JSON.parse(event.target.dataset.historyItem); if (file && historyItem) { startSeeding(file, historyItem.key, historyItem.filename); } });
-        
-        function resetUploaderUI() { ui.playSound(dom.clickSound); dom.seedingInfo.style.display = 'none'; dom.uploader.style.display = 'block'; app.selectedFile = null; dom.fileInput.value = ''; dom.fileNameDisplay.textContent = ''; dom.shareButton.disabled = true; dom.scanStatus.textContent = ''; ui.updateStatus(`Seeding ${app.client.torrents.length} file(s) in the background. Ready for next upload.`); }
-        
-        async function handleFileSelect(event) {
-            ui.playSound(dom.clickSound);
-            app.selectedFile = event.target.files[0];
-            if (!app.selectedFile) return;
-            const mobileSizeLimit = 200 * 1024 * 1024;
-            if (isMobile() && app.selectedFile.size > mobileSizeLimit) {
-                ui.updateScanStatus(`File is > ${formatBytes(mobileSizeLimit)}. Mobile uploads may be unstable.`, 'warning');
-            } else {
-                 ui.updateScanStatus('');
-            }
-            dom.fileNameDisplay.textContent = `${app.selectedFile.name} (${formatBytes(app.selectedFile.size)})`;
-            dom.shareButton.disabled = false;
-        }
-        
-        async function startSeeding(fileToSeed = null, existingKey = null, originalFilename = null) {
-            const file = fileToSeed || app.selectedFile;
-            if (!file) return;
-            if (!fileToSeed) {
-                 const isSafe = await fileScanner.scan(file);
-                 if (!isSafe) { ui.updateScanStatus('File rejected by scanner.', 'danger'); return; }
-            }
-            ui.playSound(dom.clickSound);
-            ui.showLoader('Initializing encryption...');
-            try {
-                const { encryptedFileBlob, keyHex } = await encryptFileStreaming(file, existingKey);
-                const encryptedFile = new File([encryptedFileBlob], `encrypted.dat`);
-                ui.showLoader('Connecting to P2P network...');
-                
-                // --- NEW/UPDATED TRACKER LIST ---
-                const trackerOpts = {
-                    announce: [
-                        'wss://tracker.openwebtorrent.com',
-                        'wss://ws-tracker.webtorrent.io',
-                        'wss://tracker.peer.ooo',
-                        'wss://tracker.webtorrent.dev', // Kept as a fallback
-                        'wss://tracker.files.fm:7073/announce', // Kept as a fallback
-                        'wss://tracker.btorrent.xyz', // Kept as a fallback
-                    ]
-                };
-                
-                app.client.seed(encryptedFile, trackerOpts, (torrent) => {
-                    ui.showLoader('Generating secure link...');
-                    const filename = originalFilename || file.name;
-                    const streamPageUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}stream.html`;
-                    const shareableLink = `${streamPageUrl}?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${keyHex}&filename=${encodeURIComponent(filename)}`;
-                    const data = { id: Date.now(), filename: filename, filesize: formatBytes(file.size), link: shareableLink, key: keyHex, timestamp: Date.now() };
-                    ui.showSeedingInfo(data);
-                    if (!existingKey) { historyManager.add(data); }
-                    ui.updateStatus(`Seeding ${app.client.torrents.length} file(s). Keep this page open.`);
-                });
-            } catch (err) {
-                console.error("Seeding process failed:", err);
-                ui.hideLoader();
-                dom.uploader.style.display = 'block';
-                ui.updateStatus(`Error: ${err.message}`, 'error');
-            }
+
+        // DOM Elements
+        const dom = {
+            body: document.body,
+            modeSelect: document.getElementById('mode-select'),
+            appTitle: document.getElementById('app-title'),
+            badge: document.getElementById('mode-badge'),
+            dropZone: document.getElementById('drop-zone'),
+            fileInput: document.getElementById('file-input'),
+            fileDisplay: document.getElementById('file-display'),
+            actionBtn: document.getElementById('action-button'),
+            loader: document.getElementById('loader'),
+            scanStatus: document.getElementById('scan-status'),
+            resultArea: document.getElementById('result-area'),
+            uploaderSection: document.getElementById('uploader-section'),
+            magnetLink: document.getElementById('magnet-link'),
+            qrcode: document.getElementById('qrcode'),
+            debugConsole: document.getElementById('debug-console'),
+            sfxClick: document.getElementById('sfx-click'),
+            sfxComplete: document.getElementById('sfx-complete')
+        };
+
+        // --- 2. INITIALIZATION ---
+        dom.modeSelect.addEventListener('change', (e) => switchMode(e.target.value));
+        dom.dropZone.addEventListener('click', () => dom.fileInput.click());
+        dom.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dom.dropZone.classList.add('dragover'); });
+        dom.dropZone.addEventListener('dragleave', () => dom.dropZone.classList.remove('dragover'));
+        dom.dropZone.addEventListener('drop', handleDrop);
+        dom.fileInput.addEventListener('change', (e) => processFileSelection(e.target.files[0]));
+        dom.actionBtn.addEventListener('click', startSeedingProcess);
+        document.getElementById('copy-btn').addEventListener('click', copyLink);
+
+        // --- 3. MODE SWITCHING LOGIC ---
+        function switchMode(modeKey) {
+            currentMode = modeKey;
+            const conf = MODES[modeKey];
+
+            // 1. Reset Body Class
+            dom.body.className = conf.theme;
+
+            // 2. Text Updates
+            dom.appTitle.textContent = conf.title;
+            dom.badge.textContent = conf.badge;
+            dom.actionBtn.textContent = conf.btn;
+
+            // 3. Toggle Panels
+            document.querySelectorAll('.mode-panel').forEach(p => p.style.display = 'none');
+            conf.panels.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.style.display = 'block';
+            });
+
+            // 4. Mode Specific Init
+            if(modeKey === 'teacher') initTeacherRoster();
+            if(modeKey === 'company') document.getElementById('audit-id').innerText = generateID();
+            if(modeKey === 'hacker') toggleMatrix(true); else toggleMatrix(false);
+
+            log(`System switched to ${modeKey.toUpperCase()} mode.`);
+            playSound('click');
         }
 
-        function encryptFileStreaming(file, keyHex = null) {
-            return new Promise((resolve, reject) => {
-                const CHUNK_SIZE = isMobile() ? 1 * 1024 * 1024 : 4 * 1024 * 1024;
-                const PROCESSING_DELAY = isMobile() ? 10 : 0;
-                let offset = 0;
-                let encryptedChunks = [];
-                let resolvedKeyHex = null;
-                const worker = new Worker(URL.createObjectURL(new Blob([document.getElementById('encryption-worker').textContent])));
+        // --- 4. FILE HANDLING ---
+        function handleDrop(e) {
+            e.preventDefault();
+            dom.dropZone.classList.remove('dragover');
+            if(e.dataTransfer.files.length) processFileSelection(e.dataTransfer.files[0]);
+        }
+
+        function processFileSelection(file) {
+            if(!file) return;
+            selectedFile = file;
+            playSound('click');
+            
+            const conf = MODES[currentMode];
+
+            // Restriction Checks
+            if(conf.blockExe && (file.name.endsWith('.exe') || file.name.endsWith('.bat'))) {
+                dom.scanStatus.innerHTML = "<span style='color:red'>Security Alert: Executables blocked in Teacher Mode.</span>";
+                dom.actionBtn.disabled = true;
+                dom.fileDisplay.textContent = "";
+                return;
+            }
+
+            // Auto Rename (Student Mode)
+            let displayName = file.name;
+            if(conf.autoRename) {
+                displayName = `[Student_ID]_${file.name}`;
+                log(`File auto-renamed to: ${displayName}`);
+            }
+
+            dom.fileDisplay.textContent = `${displayName} (${formatBytes(file.size)})`;
+            dom.scanStatus.innerHTML = "<span style='color:var(--accent-color)'>File ready for encryption.</span>";
+            dom.actionBtn.disabled = false;
+        }
+
+        // --- 5. ENCRYPTION & SEEDING PROCESS ---
+        async function startSeedingProcess() {
+            if(!selectedFile) return;
+            playSound('click');
+            
+            // UI State
+            dom.actionBtn.disabled = true;
+            dom.actionBtn.textContent = "Processing...";
+            dom.loader.style.display = 'block';
+
+            log("Reading file...");
+
+            // Read File
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fileData = e.target.result;
+                log("File loaded into memory. Starting Worker...");
                 
-                worker.onmessage = (e) => {
-                    if (e.data.status === 'error') { worker.terminate(); return reject(new Error(e.data.error)); }
-                    if (e.data.status === 'initialized') {
-                        resolvedKeyHex = e.data.keyHex;
-                        encryptedChunks.push(e.data.iv);
-                        readNextChunk();
-                    } else if (e.data.status === 'chunk_encrypted') {
-                        if (e.data.chunk) { encryptedChunks.push(e.data.chunk); }
-                        setTimeout(readNextChunk, PROCESSING_DELAY);
-                    } else if (e.data.status === 'finished') {
+                // Initialize Worker
+                const blob = new Blob([document.getElementById('encryption-worker').textContent], {type: "text/javascript"});
+                const worker = new Worker(URL.createObjectURL(blob));
+
+                worker.postMessage({ action: 'encrypt', fileData: fileData });
+
+                worker.onmessage = function(ev) {
+                    if(ev.data.status === 'complete') {
+                        const { key, iv, encryptedData } = ev.data;
+                        log(`Encryption Complete. Key: ${key.substring(0,8)}...`);
+                        
+                        // Create a file object from encrypted data to seed
+                        const encryptedFile = new File([encryptedData], "secure.dat", {type: "text/plain"});
+                        
+                        seedToWebTorrent(encryptedFile, key, selectedFile.name);
                         worker.terminate();
-                        const finalBlob = new Blob(encryptedChunks);
-                        resolve({ encryptedFileBlob: finalBlob, keyHex: resolvedKeyHex });
                     }
                 };
-                worker.onerror = (err) => { worker.terminate(); reject(err); };
-                const reader = new FileReader();
-                reader.onload = (e) => { worker.postMessage({ action: 'chunk', payload: { chunk: e.target.result } }, [e.target.result]); };
-                reader.onerror = (err) => { worker.terminate(); reject(err); };
-                function readNextChunk() {
-                    if (offset >= file.size) { worker.postMessage({ action: 'finalize' }); return; }
-                    const progress = ((offset / file.size) * 100).toFixed(1);
-                    ui.showLoader(`Encrypting... ${progress}%`);
-                    const slice = file.slice(offset, offset + CHUNK_SIZE);
-                    reader.readAsArrayBuffer(slice);
-                    offset += CHUNK_SIZE;
-                }
-                worker.postMessage({ action: 'init', payload: { keyHex: keyHex } });
+            };
+            reader.readAsArrayBuffer(selectedFile);
+        }
+
+        function seedToWebTorrent(fileToSeed, key, originalName) {
+            log("Initializing WebTorrent Client...");
+            
+            client.seed(fileToSeed, (torrent) => {
+                log(`Seeding Active. Peers: ${torrent.numPeers}`);
+                playSound('complete');
+
+                // Construct Stream URL (Assuming stream.html exists, or using current URL logic)
+                // We embed the Key and Filename into the URL anchor or query params
+                const safeName = encodeURIComponent(originalName);
+                const magnet = encodeURIComponent(torrent.magnetURI);
+                
+                // Construct the link
+                const shareLink = `${window.location.origin}${window.location.pathname.replace('index.html','')}stream.html?magnet=${magnet}&key=${key}&filename=${safeName}`;
+
+                // UI Updates
+                dom.loader.style.display = 'none';
+                dom.uploaderSection.style.display = 'none';
+                dom.resultArea.style.display = 'block';
+                
+                dom.magnetLink.value = shareLink;
+                
+                // QR Code
+                dom.qrcode.innerHTML = "";
+                new QRCode(dom.qrcode, { text: shareLink, width: 128, height: 128 });
             });
         }
 
-        function copyMagnetLink() { ui.playSound(dom.clickSound); navigator.clipboard.writeText(dom.magnetLink.value).then(() => { dom.copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!'; setTimeout(() => dom.copyButton.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000); }); }
+        // --- 6. UTILITIES ---
         
-        const fileScanner = {
-            async scan(file) {
-                const extension = file.name.split('.').pop().toLowerCase();
-                if (app.blockedFormats.includes(extension)) { ui.updateScanStatus(`Error: File format ".${extension}" is disallowed.`, 'danger'); return false; }
-                if (!app.allowedFormats.includes(extension)) { ui.updateScanStatus(`Warning: Format ".${extension}" is not recommended.`, 'warning'); }
-                if (/\.(pdf|jpg|png|mp4|txt)\.exe$/.test(file.name.toLowerCase())) { ui.updateScanStatus(`Error: Suspicious double extension detected!`, 'danger'); return false; }
-                if (dom.advancedScannerToggle.checked) {
-                    ui.showLoader('Performing advanced scan...');
-                    try {
-                        const hash = await this.calculateHash(file);
-                        if (app.maliciousHashes.includes(hash)) { ui.updateScanStatus('Error: File matches a known malicious signature!', 'danger'); return false; }
-                    } catch (err) { ui.updateScanStatus('Advanced scan could not be completed.', 'warning'); } 
-                    finally { ui.hideLoader(); dom.uploader.style.display = 'block'; }
-                }
-                return true;
-            },
-            async calculateHash(file) {
-                if(file.size > 50 * 1024 * 1024) { ui.updateScanStatus('Advanced scan skipped for large file.', 'warning'); return 'skipped'; }
-                const buffer = await file.arrayBuffer(); const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-                return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-            },
-        };
+        function formatBytes(bytes, d=2){
+            if(!+bytes)return'0 Bytes';
+            const k=1024,i=Math.floor(Math.log(bytes)/Math.log(k));
+            return`${parseFloat((bytes/Math.pow(k,i)).toFixed(d))} ${['Bytes','KB','MB','GB','TB'][i]}`;
+        }
 
-        const historyManager = {
-            key: 'webtorrent-history',
-            load() { let history = JSON.parse(localStorage.getItem(this.key)) || []; const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000; history = history.filter(item => item.timestamp > thirtyDaysAgo); localStorage.setItem(this.key, JSON.stringify(history)); if (history.length > 0) { dom.welcomeMessage.style.display = 'none'; dom.historyTable.style.display = 'table'; dom.historyTableBody.innerHTML = ''; history.sort((a,b) => b.timestamp - a.timestamp).forEach(item => this.renderRow(item)); } else { dom.welcomeMessage.style.display = 'block'; dom.historyTable.style.display = 'none'; } },
-            add(item) { let history = JSON.parse(localStorage.getItem(this.key)) || []; if (!history.some(h => h.key === item.key)) { history.push(item); } localStorage.setItem(this.key, JSON.stringify(history)); this.load(); },
-            delete(id) { ui.playSound(dom.clickSound); let history = JSON.parse(localStorage.getItem(this.key)) || []; history = history.filter(item => item.id !== id); localStorage.setItem(this.key, JSON.stringify(history)); this.load(); },
-            renderRow(item) {
-                const row = document.createElement('tr'); const fileExt = item.filename.split('.').pop();
-                row.innerHTML = `<td><i class="${getFileIconClass(fileExt)} file-icon"></i></td><td>${escapeHTML(item.filename)}</td><td>${item.filesize}</td><td>${new Date(item.timestamp).toLocaleString()}</td>
-                    <td class="history-actions">
-                        <button class="btn-copy-magnet"><i class="fas fa-copy"></i> Copy</button>
-                        <button class="btn-open-stream"><i class="fas fa-external-link-alt"></i> Open</button>
-                        <button class="btn-re-seed btn-warning"><i class="fas fa-sync-alt"></i> Re-seed</button>
-                        <button class="btn-delete-history btn-danger"><i class="fas fa-trash"></i></button>
-                    </td>`;
-                dom.historyTableBody.appendChild(row);
-                row.querySelector('.btn-delete-history').addEventListener('click', () => this.delete(item.id));
-                row.querySelector('.btn-open-stream').addEventListener('click', () => window.open(item.link, '_blank'));
-                row.querySelector('.btn-copy-magnet').addEventListener('click', (e) => { const btn = e.currentTarget; navigator.clipboard.writeText(item.link).then(() => { btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000); }); });
-                row.querySelector('.btn-re-seed').addEventListener('click', () => { alert('Please select the original file to re-seed it.'); dom.reSeedFileInput.dataset.historyItem = JSON.stringify(item); dom.reSeedFileInput.click(); });
+        function generateID() { return 'SES-' + Math.random().toString(36).substr(2, 9).toUpperCase(); }
+
+        function copyLink() {
+            dom.magnetLink.select();
+            document.execCommand('copy');
+            alert("Link copied to clipboard!");
+        }
+
+        function initTeacherRoster() {
+            const grid = document.getElementById('roster-display');
+            grid.innerHTML = '';
+            let count = Math.floor(Math.random() * 10) + 15;
+            document.getElementById('student-count').innerText = count;
+            for(let i=0; i<count; i++) {
+                const d = document.createElement('div');
+                d.className = 'student-dot ' + (Math.random() > 0.3 ? 'online' : '');
+                d.innerText = i+1;
+                grid.appendChild(d);
             }
-        };
+        }
 
-        function formatBytes(bytes, d=2){if(!+bytes)return'0 Bytes';const k=1024,i=Math.floor(Math.log(bytes)/Math.log(k));return`${parseFloat((bytes/Math.pow(k,i)).toFixed(d))} ${['Bytes','KB','MB','GB','TB'][i]}`}
-        function getFileIconClass(ext){const i={'mp4':'fas fa-file-video','webm':'fas fa-file-video','mkv':'fas fa-file-video','mp3':'fas fa-file-audio','flac':'fas fa-file-audio','png':'fas fa-file-image','jpg':'fas fa-file-image','jpeg':'fas fa-file-image','pdf':'fas fa-file-pdf','zip':'fas fa-file-archive','txt':'fas fa-file-alt'};return i[ext.toLowerCase()]||'fas fa-file'}
-        function escapeHTML(str){return str.replace(/[&<>'"]/g,t=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t))}
-        
-        ui.init();
-        historyManager.load();
-    });
+        function log(msg) {
+            console.log(msg);
+            if(MODES[currentMode].debug) {
+                const line = document.createElement('div');
+                line.textContent = `> ${msg}`;
+                dom.debugConsole.appendChild(line);
+                dom.debugConsole.scrollTop = dom.debugConsole.scrollHeight;
+            }
+        }
+
+        function playSound(type) {
+            if(MODES[currentMode].sfx || type === 'complete') {
+                const audio = type === 'click' ? dom.sfxClick : dom.sfxComplete;
+                audio.currentTime = 0;
+                audio.play().catch(()=>{});
+            }
+        }
+
+        // --- 7. MATRIX RAIN EFFECT ---
+        let matrixInt;
+        function toggleMatrix(enable) {
+            const cvs = document.getElementById('matrix-canvas');
+            const ctx = cvs.getContext('2d');
+            if(matrixInt) clearInterval(matrixInt);
+            
+            if(!enable) {
+                ctx.clearRect(0,0,cvs.width,cvs.height);
+                return;
+            }
+
+            cvs.width = window.innerWidth;
+            cvs.height = window.innerHeight;
+            const cols = Math.floor(cvs.width / 20);
+            const ypos = Array(cols).fill(0);
+
+            matrixInt = setInterval(() => {
+                ctx.fillStyle = '#0001';
+                ctx.fillRect(0, 0, cvs.width, cvs.height);
+                ctx.fillStyle = '#0f0';
+                ctx.font = '15pt monospace';
+                
+                ypos.forEach((y, ind) => {
+                    const text = String.fromCharCode(Math.random() * 128);
+                    const x = ind * 20;
+                    ctx.fillText(text, x, y);
+                    if (y > 100 + Math.random() * 10000) ypos[ind] = 0;
+                    else ypos[ind] = y + 20;
+                });
+            }, 50);
+        }
+
     </script>
 </body>
 </html>
