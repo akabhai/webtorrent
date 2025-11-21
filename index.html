@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P Secure Ultimate Sharer</title>
+    <title>SecureShare | P2P Encrypted Uploader</title>
     
     <!-- EXTERNAL LIBRARIES -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
@@ -18,82 +18,88 @@
             --card-bg: #ffffff;
             --text-color: #2d3436;
             --accent-color: #3498db;
-            --border-radius: 8px;
+            --border-radius: 12px;
             --font-family: 'Segoe UI', system-ui, sans-serif;
-            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow: 0 8px 30px rgba(0,0,0,0.12);
         }
 
         /* --- 2. MODE THEMES --- */
         body.mode-teacher { --bg-color: #e3f2fd; --accent-color: #0288d1; --font-family: 'Verdana', sans-serif; }
-        body.mode-company { --bg-color: #2c3e50; --card-bg: #34495e; --text-color: #ecf0f1; --accent-color: #f39c12; --border-radius: 2px; }
-        body.mode-anime { --bg-color: #120024; --card-bg: #2a0a45; --text-color: #e0aaff; --accent-color: #ff007a; --border-radius: 20px; }
+        body.mode-company { --bg-color: #2c3e50; --card-bg: #34495e; --text-color: #ecf0f1; --accent-color: #f39c12; --border-radius: 4px; }
+        body.mode-anime { --bg-color: #1a0b2e; --card-bg: #2d1b4e; --text-color: #e0aaff; --accent-color: #ff007a; --border-radius: 20px; }
         body.mode-developer { --bg-color: #121212; --card-bg: #1e1e1e; --text-color: #00ff00; --accent-color: #00ff00; --font-family: 'Courier New', monospace; }
         body.mode-hacker { --bg-color: #000; --card-bg: rgba(0,20,0,0.9); --text-color: #0f0; --accent-color: #0f0; --font-family: 'Courier New', monospace; --border-radius: 0; }
 
         /* --- 3. LAYOUT --- */
-        body { background: var(--bg-color); color: var(--text-color); font-family: var(--font-family); margin: 0; padding: 20px; transition: 0.3s; min-height: 100vh; }
+        body { background: var(--bg-color); color: var(--text-color); font-family: var(--font-family); margin: 0; padding: 20px; min-height: 100vh; transition: 0.3s; }
         .container { max-width: 900px; margin: 0 auto; position: relative; z-index: 2; }
         
         /* Hacker Matrix Background */
         canvas#matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; display: none; }
         body.mode-hacker canvas#matrix-canvas { display: block; }
 
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--card-bg); padding: 15px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
-        .header h2 { margin: 0; font-size: 1.5rem; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: var(--card-bg); padding: 20px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
+        .header h2 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
         
-        .main-card { background: var(--card-bg); padding: 30px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
+        .main-card { background: var(--card-bg); padding: 35px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
 
         /* --- 4. DYNAMIC FEATURE GRID --- */
         .feature-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 15px;
             margin-bottom: 25px;
             padding: 20px;
-            background: rgba(0,0,0,0.03);
+            background: rgba(0,0,0,0.04);
             border-radius: var(--border-radius);
             border-left: 5px solid var(--accent-color);
+            animation: slideIn 0.3s ease-out;
         }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .feature-item { display: flex; align-items: center; gap: 10px; font-size: 0.9em; }
-        .feature-item label { flex: 1; cursor: pointer; }
-        .feature-item i { width: 20px; text-align: center; color: var(--accent-color); }
+        .feature-item { display: flex; align-items: center; gap: 10px; font-size: 0.95em; }
+        .feature-item label { flex: 1; cursor: pointer; font-weight: 500; }
+        .feature-item i { width: 24px; text-align: center; color: var(--accent-color); }
         
-        .feature-item input[type="text"], .feature-item select { padding: 5px; border: 1px solid #ccc; border-radius: 4px; width: 100%; font-family: inherit; }
-        .feature-item input[type="checkbox"] { accent-color: var(--accent-color); transform: scale(1.2); cursor: pointer; }
+        .feature-item input[type="text"], .feature-item select { padding: 8px; border: 1px solid #ccc; border-radius: 6px; width: 100%; font-family: inherit; }
+        .feature-item input[type="checkbox"] { accent-color: var(--accent-color); width: 18px; height: 18px; cursor: pointer; }
 
         /* --- 5. UPLOADER UI --- */
         #drop-zone {
             border: 3px dashed var(--accent-color);
             border-radius: var(--border-radius);
-            padding: 40px;
+            padding: 50px 20px;
             text-align: center;
             cursor: pointer;
-            transition: 0.2s;
+            transition: 0.3s;
             background: rgba(0,0,0,0.01);
         }
         #drop-zone:hover, #drop-zone.dragover { background: rgba(0,0,0,0.05); transform: scale(1.01); }
         
-        .file-status { margin-top: 15px; font-weight: bold; line-height: 1.5; }
-        .error-text { color: #e74c3c; }
-        .rename-text { color: var(--accent-color); font-style: italic; }
+        .file-status { margin-top: 20px; font-weight: bold; line-height: 1.6; text-align: center; }
+        .error-text { color: #e74c3c; display: block; margin-top: 5px; }
+        .rename-text { color: var(--accent-color); font-style: italic; display: block; margin-top: 5px; }
 
-        /* --- 6. BUTTONS & UTILS --- */
+        /* --- 6. BUTTONS --- */
         .btn-primary {
-            background: var(--accent-color); color: #fff; border: none; padding: 15px; width: 100%;
+            background: var(--accent-color); color: #fff; border: none; padding: 16px; width: 100%;
             border-radius: var(--border-radius); font-size: 1.1em; font-weight: bold; cursor: pointer;
-            margin-top: 20px; transition: 0.2s; font-family: inherit;
+            margin-top: 25px; transition: 0.2s; font-family: inherit; letter-spacing: 0.5px;
         }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; background: #95a5a6; }
+        .btn-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
-        #hex-view { font-family: monospace; font-size: 11px; color: #888; margin-top: 10px; display: none; word-break: break-all; background: #000; padding: 10px; border-radius: 4px; }
-        #log-window { background: #111; color: #0f0; height: 150px; overflow-y: auto; padding: 10px; margin-top: 20px; border-radius: 4px; font-family: monospace; font-size: 12px; display: none; }
+        #hex-view { font-family: monospace; font-size: 11px; color: #888; margin-top: 15px; display: none; word-break: break-all; background: #111; padding: 15px; border-radius: 6px; color: #0f0; }
+        #log-window { background: #111; color: #0f0; height: 150px; overflow-y: auto; padding: 10px; margin-top: 20px; border-radius: 6px; font-family: monospace; font-size: 12px; display: none; border: 1px solid #333; }
 
         /* --- 7. RESULT SECTION --- */
-        #result-area { display: none; margin-top: 30px; text-align: center; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.1); }
-        #share-link { width: 100%; padding: 12px; margin-top: 10px; border: 2px solid var(--accent-color); border-radius: var(--border-radius); font-family: monospace; text-align: center; }
-        #qrcode { margin: 20px auto; display: inline-block; padding: 10px; background: white; border-radius: 8px; }
+        #result-area { display: none; margin-top: 35px; text-align: center; padding-top: 25px; border-top: 2px solid rgba(0,0,0,0.05); }
+        #share-link { width: 100%; padding: 15px; margin-top: 15px; border: 2px solid var(--accent-color); border-radius: var(--border-radius); font-family: monospace; text-align: center; font-size: 1em; background: rgba(0,0,0,0.02); color: var(--text-color); }
+        #qrcode { margin: 25px auto; display: inline-block; padding: 15px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+
+        /* Helper Badge */
+        #mode-badge { background: var(--accent-color); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; vertical-align: middle; }
+        select#mode-select { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; font-weight: bold; }
 
     </style>
 </head>
@@ -107,14 +113,15 @@
         <div class="header">
             <div>
                 <h2><i class="fas fa-shield-alt"></i> SecureShare</h2>
-                <small id="mode-badge" style="background:var(--accent-color); color:#fff; padding:2px 6px; border-radius:4px;">Default Mode</small>
+                <span id="mode-badge">Standard Mode</span>
             </div>
             <div style="text-align: right;">
-                <label style="font-size:0.9em; font-weight:bold;">Select Mode:</label><br>
-                <select id="mode-select" style="padding: 6px; border-radius: 4px;">
+                <label style="font-size:0.85em; font-weight:bold; display:block; margin-bottom:5px;">OPERATING MODE</label>
+                <select id="mode-select">
                     <option value="default">Default</option>
                     <optgroup label="Education">
                         <option value="teacher">Teacher Mode</option>
+                        <option value="student">Student Mode</option>
                     </optgroup>
                     <optgroup label="Enterprise">
                         <option value="company">Company Mode</option>
@@ -137,14 +144,14 @@
 
             <!-- UPLOADER -->
             <div id="drop-zone">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 3em; color: var(--accent-color); margin-bottom: 10px;"></i>
+                <i class="fas fa-cloud-upload-alt" style="font-size: 3.5em; color: var(--accent-color); margin-bottom: 15px; opacity: 0.8;"></i>
                 <h3>Drag & Drop File Here</h3>
-                <p style="opacity: 0.7;">Or click to browse</p>
+                <p style="opacity: 0.6; margin-top: 5px;">AES-256 Encryption happens in your browser</p>
                 <input type="file" id="file-input" style="display: none;">
             </div>
 
             <!-- STATUS / FEEDBACK -->
-            <div id="status-display" class="file-status">Waiting for file...</div>
+            <div id="status-display" class="file-status">Waiting for selection...</div>
             <div id="hex-view"></div>
 
             <!-- ACTION -->
@@ -155,12 +162,14 @@
 
             <!-- RESULTS -->
             <div id="result-area">
-                <h3 style="color: var(--accent-color);"><i class="fas fa-check-circle"></i> Seeding Active</h3>
-                <p>Share this secure link with recipients:</p>
-                <input type="text" id="share-link" readonly onclick="this.select()">
+                <h3 style="color: var(--accent-color); margin-bottom: 10px;"><i class="fas fa-check-circle"></i> Seeding Active</h3>
+                <p style="opacity: 0.8; font-size: 0.9em;">Send this link to the recipient. Keep this tab open.</p>
+                
+                <input type="text" id="share-link" readonly onclick="this.select()" placeholder="Generating link...">
+                
                 <div id="qrcode"></div>
                 <br>
-                <button id="audit-btn" style="display:none; padding:8px 15px; background:#444; color:#fff; border:none; border-radius:4px; cursor:pointer;" onclick="downloadAudit()">
+                <button id="audit-btn" style="display:none; padding:10px 20px; background:#444; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-top:10px;" onclick="downloadAudit()">
                     <i class="fas fa-file-contract"></i> Download Audit Log
                 </button>
             </div>
@@ -185,7 +194,7 @@
                     const wordArray = CryptoJS.lib.WordArray.create(fileData);
                     const encrypted = CryptoJS.AES.encrypt(wordArray, key, { iv: iv }).toString();
                     
-                    // 3. PACK IV + CIPHERTEXT (Fixes Decryption Error)
+                    // 3. PACK IV + CIPHERTEXT (Crucial Fix!)
                     // Format: IV_HEX : ENCRYPTED_STRING
                     const packet = iv.toString(CryptoJS.enc.Hex) + ':' + encrypted;
 
@@ -204,10 +213,12 @@
     <!-- MAIN SCRIPT -->
     <script>
         // --- 0. RELIABLE TRACKERS ---
+        // These are public WebSocket trackers required for browser-based P2P
         const trackers = [
             'wss://tracker.openwebtorrent.com',
             'wss://tracker.files.fm:7073/announce',
-            'wss://tracker.webtorrent.dev'
+            'wss://tracker.webtorrent.dev',
+            'wss://tracker.btorrent.xyz'
         ];
 
         // --- 1. CONFIGURATION: MODES & FEATURES ---
@@ -219,11 +230,18 @@
                 theme: "mode-teacher",
                 features: [
                     { id: 'block_exe', type: 'toggle', label: 'Block .EXE/.BAT', checked: true, icon: 'fa-ban' },
-                    { id: 'size_limit', type: 'toggle', label: 'Limit Size (50MB)', checked: true, icon: 'fa-weight-hanging' },
+                    { id: 'size_limit', type: 'toggle', label: 'Limit Size (100MB)', checked: true, icon: 'fa-weight-hanging' },
                     { id: 'pdf_only', type: 'toggle', label: 'PDF Only Mode', checked: false, icon: 'fa-file-pdf' },
                     { id: 'assign_tag', type: 'select', label: 'Tag', options: ['Homework', 'Exam', 'Syllabus', 'Lab'], icon: 'fa-tag' },
-                    { id: 'quiet_hours', type: 'toggle', label: 'Check Quiet Hours', checked: false, icon: 'fa-clock' },
-                    { id: 'roster', type: 'info', label: 'Roster Active: 24 Students', icon: 'fa-users' }
+                    { id: 'roster', type: 'info', label: 'Active Students: 24', icon: 'fa-users' }
+                ]
+            },
+
+            student: {
+                name: "Student Mode",
+                theme: "mode-teacher",
+                features: [
+                    { id: 'auto_rename', type: 'toggle', label: 'Auto-Add Student ID', checked: true, icon: 'fa-id-card' }
                 ]
             },
 
@@ -234,8 +252,6 @@
                     { id: 'confidential', type: 'toggle', label: 'Prefix [CONFIDENTIAL]', checked: true, icon: 'fa-user-secret' },
                     { id: 'password', type: 'input', label: 'Link Password (Hint)', placeholder: 'Optional', icon: 'fa-key' },
                     { id: 'expiry', type: 'select', label: 'Link Expiry', options: ['1 Hour', '24 Hours', 'Never'], icon: 'fa-hourglass-half' },
-                    { id: 'geo_fence', type: 'toggle', label: 'Verify Office IP', checked: true, icon: 'fa-building' },
-                    { id: 'watermark', type: 'toggle', label: 'Digital Watermark', checked: true, icon: 'fa-stamp' },
                     { id: 'audit', type: 'toggle', label: 'Generate Audit Log', checked: true, icon: 'fa-list-alt' }
                 ]
             },
@@ -246,10 +262,8 @@
                 features: [
                     { id: 'season', type: 'input', label: 'Season (01)', value: '01', icon: 'fa-tv' },
                     { id: 'episode', type: 'input', label: 'Episode (01)', value: '01', icon: 'fa-film' },
-                    { id: 'res_tag', type: 'select', label: 'Resolution', options: ['1080p', '720p', '4K'], icon: 'fa-eye' },
                     { id: 'format_cop', type: 'toggle', label: 'Enforce MP4/MKV', checked: true, icon: 'fa-filter' },
-                    { id: 'cover_art', type: 'toggle', label: 'Fetch Metadata (Sim)', checked: true, icon: 'fa-image' },
-                    { id: 'intro_skip', type: 'toggle', label: 'Add Intro Skip', checked: true, icon: 'fa-forward' }
+                    { id: 'res_tag', type: 'select', label: 'Resolution', options: ['1080p', '720p', '4K'], icon: 'fa-eye' }
                 ]
             },
 
@@ -259,9 +273,6 @@
                 features: [
                     { id: 'console', type: 'toggle', label: 'Live Console', checked: true, icon: 'fa-terminal' },
                     { id: 'hex', type: 'toggle', label: 'Hex Header View', checked: true, icon: 'fa-barcode' },
-                    { id: 'speed', type: 'range', label: 'Throttle Upload', icon: 'fa-tachometer-alt' },
-                    { id: 'tracker', type: 'input', label: 'Add Tracker', placeholder: 'wss://...', icon: 'fa-server' },
-                    { id: 'peer_id', type: 'info', label: 'PeerID: ' + Math.random().toString(16).substr(2,6), icon: 'fa-id-badge' },
                     { id: 'json', type: 'button', label: 'Dump JSON', icon: 'fa-code' }
                 ]
             },
@@ -272,10 +283,7 @@
                 features: [
                     { id: 'matrix', type: 'toggle', label: 'Visuals', checked: true, icon: 'fa-eye' },
                     { id: 'trace', type: 'toggle', label: 'Trace Route', checked: true, icon: 'fa-network-wired' },
-                    { id: 'spoof', type: 'toggle', label: 'Spoof IP', checked: true, icon: 'fa-mask' },
-                    { id: 'root', type: 'info', label: 'ROOT ACCESS: GRANTED', icon: 'fa-unlock' },
-                    { id: 'nuke', type: 'button', label: 'NUKE LOGS', icon: 'fa-bomb' },
-                    { id: 'sfx', type: 'toggle', label: 'Audio Feedback', checked: true, icon: 'fa-volume-up' }
+                    { id: 'root', type: 'info', label: 'ROOT ACCESS: GRANTED', icon: 'fa-unlock' }
                 ]
             }
         };
@@ -368,8 +376,10 @@
                     control = `<select onchange="updateSetting('${f.id}', this.value)">${f.options.map(o => `<option>${o}</option>`).join('')}</select>`;
                 else if(f.type === 'button')
                     control = `<button style="padding:2px 8px; cursor:pointer;" onclick="alert('${f.label} Clicked')">Run</button>`;
+                else if(f.type === 'info')
+                    control = `<span style="font-size:0.9em; opacity:0.7">${f.label}</span>`;
                 
-                div.innerHTML = `<i class="fas ${f.icon}"></i> <label>${f.label}</label> ${control}`;
+                div.innerHTML = `<i class="fas ${f.icon}"></i> ${f.type !== 'info' ? `<label>${f.label}</label>` : ''} ${control}`;
                 el.featContainer.appendChild(div);
             });
         }
@@ -393,34 +403,39 @@
             let messages = [];
             let newName = file.name;
             
-            // Mode Specific Logic
+            // --- FEATURE LOGIC IMPLEMENTATION ---
+            
+            // 1. Teacher Mode
             if(currentMode === 'teacher') {
                 const ext = file.name.split('.').pop().toLowerCase();
                 if(settings['block_exe'] && ['exe','bat','msi'].includes(ext)) {
                     messages.push("❌ Blocked: Executable files not allowed.");
                     isValid = false;
                 }
-                if(settings['size_limit'] && file.size > 50 * 1024 * 1024) {
-                    messages.push("❌ Blocked: File exceeds 50MB limit.");
+                if(settings['size_limit'] && file.size > 100 * 1024 * 1024) {
+                    messages.push("❌ Blocked: File exceeds 100MB limit.");
                     isValid = false;
                 }
                 if(settings['pdf_only'] && ext !== 'pdf') {
                     messages.push("❌ Blocked: Only PDF allowed.");
                     isValid = false;
                 }
-                if(settings['quiet_hours']) {
-                    const h = new Date().getHours();
-                    if(h > 20 || h < 7) messages.push("⚠️ Warning: Outside quiet hours.");
-                }
                 if(settings['assign_tag']) {
                     newName = `[${settings['assign_tag']}] ${file.name}`;
                 }
             }
+            // 2. Student Mode
+            else if(currentMode === 'student') {
+                if(settings['auto_rename']) {
+                    const randID = Math.floor(1000 + Math.random() * 9000);
+                    newName = `ID_${randID}_${file.name}`;
+                }
+            }
+            // 3. Company Mode
             else if(currentMode === 'company') {
                 if(settings['confidential']) newName = `[CONFIDENTIAL] ${file.name}`;
-                if(settings['geo_fence']) messages.push("✅ Geo-Fence: Office IP Verified.");
-                if(settings['watermark']) messages.push("ℹ️ Watermark pending...");
             }
+            // 4. Anime Mode
             else if(currentMode === 'anime') {
                 if(settings['format_cop']) {
                     const ext = file.name.split('.').pop().toLowerCase();
@@ -431,6 +446,7 @@
                 const res = settings['res_tag'] ? ` [${settings['res_tag']}]` : '';
                 newName = `S${s.padStart(2,'0')}E${e.padStart(2,'0')} - ${file.name}${res}`;
             }
+            // 5. Developer Mode
             else if(currentMode === 'developer') {
                 if(settings['hex']) {
                     el.hex.style.display = 'block';
@@ -438,15 +454,13 @@
                 }
             }
 
-            // UI Feedback
+            // --- UI FEEDBACK ---
             if(isValid) {
                 let html = `<strong>${file.name}</strong><br>`;
                 if(messages.length) html += `<span style="font-size:0.9em; color:#666;">${messages.join('<br>')}</span><br>`;
                 if(newName !== file.name) {
                     html += `<span class="rename-text">Renaming to: ${newName}</span>`;
-                    // Technically we can't rename a File object directly without creating a new one
-                    // But for the purpose of the torrent, we will pass this name to the seed function logic
-                    // or re-slice it.
+                    // Create a new File object with the new name
                     processingFile = new File([file.slice(0, file.size, file.type)], newName, {type: file.type});
                 }
                 el.status.innerHTML = html;
@@ -476,15 +490,17 @@
                 worker.onmessage = function(ev) {
                     if(ev.data.status === 'success') {
                         log("Encryption Done. IV packed with data.");
+                        
                         // Create a file from the encrypted packet (IV+Cipher)
-                        // Name it using the processingFile name (renamed version)
                         const secureBlob = new Blob([ev.data.encryptedPacket], {type: "text/plain"});
+                        
+                        // Note: We use processingFile.name here to preserve the Renaming logic from the previous step
                         const fileToSeed = new File([secureBlob], processingFile.name, {type: "text/plain"});
                         
                         seedFile(fileToSeed, ev.data.key);
                         worker.terminate();
                     } else {
-                        alert("Encryption Error");
+                        alert("Encryption Error: " + ev.data.msg);
                         el.btn.disabled = false;
                     }
                 }
@@ -499,7 +515,7 @@
                 log(`Seeding: ${torrent.infoHash}`);
                 
                 // --- URL CONSTRUCTION ---
-                // Force link to stream.html
+                // Force link to stream.html in the current directory
                 let path = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
                 let url = `${window.location.origin}${path}/stream.html?magnet=${encodeURIComponent(torrent.magnetURI)}&key=${key}`;
                 
@@ -520,7 +536,7 @@
 
                 if(currentMode === 'company' && settings['audit']) el.auditBtn.style.display = 'inline-block';
                 
-                el.btn.innerText = "Done";
+                el.btn.innerText = "Done! Share the Link below.";
             });
         }
 
